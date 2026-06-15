@@ -65,7 +65,6 @@
         const GITHUB_REPO = "Streaming";
         const GITHUB_CATALOG_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/peliculas.json";
         const GITHUB_STORE_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/tienda_config.json";
-        const GITHUB_INDEX_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/index.html";
 
         const TMDB_API_KEY = "80abb144cad61c0ce5f2640337b1187c";
 
@@ -155,7 +154,7 @@
         };
 
         const App = () => {
-          const [viewTab, setViewTab] = useState("shop"); // shop | staged | scan | indexEditor
+          const [viewTab, setViewTab] = useState("shop"); // shop | staged | scan
           const [movies, setMovies] = useState(DEFAULT_MOVIES);
           const [currentIndex, setCurrentIndex] = useState(0);
           const [slideProgress, setSlideProgress] = useState(0);
@@ -171,15 +170,13 @@
           const [gitHubToken, setGitHubToken] = useState("");
           const [peliculasSync, setPeliculasSync] = useState("Sin Sincronizar"); // "Sincronizando" | "Sincronizado" | "Error"
           const [tiendaSync, setTiendaSync] = useState("Sin Sincronizar");
-          const [indexSync, setIndexSync] = useState("Sin Sincronizar");
           const [lastPeliculasTime, setLastPeliculasTime] = useState("");
           const [lastTiendaTime, setLastTiendaTime] = useState("");
-          const [lastIndexTime, setLastIndexTime] = useState("");
           const [showSuccessModal, setShowSuccessModal] = useState(null); // { filename: "peliculas.json", time: "16:25" }
           const [tokenError, setTokenError] = useState(false);
-
-          // EDITOR DIRECTO DE INDEX.HTML (NUEVA CARACTERÍSTICA PARA AUTOMATIZAR LA WEB PRINCIPAL)
-          const [indexHtmlCode, setIndexHtmlCode] = useState("");
+          
+          // ESTADO DE CONEXIÓN DE GITHUB (PUNTITO DE CONTACTO EN VIVO)
+          const [connectionStatus, setConnectionStatus] = useState("disconnected"); // disconnected | checking | connected | error
 
           // ESTADOS DEL ESCÁNER TMDB
           const [targetPlatform, setTargetPlatform] = useState("Netflix");
@@ -196,17 +193,55 @@
           const progressInterval = useRef(null);
           const touchStartX = useRef(null);
           const touchEndX = useRef(null);
+          const tokenDebounceRef = useRef(null);
 
           const showNotification = useCallback((message, type = 'success') => {
             setNotification({ message, type });
             setTimeout(() => setNotification(null), 3000);
           }, []);
 
+          // === FUNCIÓN EN VIVO: COMPROBACIÓN DE CONEXIÓN CON GITHUB (EL PUNTITO DE CONTACTO) ===
+          const verifyGitHubAccess = useCallback(async (token) => {
+              const cleanToken = token.trim();
+              if (!cleanToken) {
+                  setConnectionStatus("disconnected");
+                  return;
+              }
+              setConnectionStatus("checking");
+              try {
+                  const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`, {
+                      headers: {
+                          "Authorization": `token ${cleanToken}`,
+                          "Accept": "application/vnd.github.v3+json"
+                      }
+                  });
+                  if (res.ok) {
+                      setConnectionStatus("connected");
+                      showNotification("¡Conexión establecida con tu GitHub!", "success");
+                  } else {
+                      setConnectionStatus("error");
+                      if (res.status === 401) {
+                          showNotification("Token incorrecto o vencido (401)", "error");
+                      } else if (res.status === 403) {
+                          showNotification("Límite de API o falta de permisos (403)", "error");
+                      } else {
+                          showNotification("Fallo al contactar el repositorio", "error");
+                      }
+                  }
+              } catch (e) {
+                  setConnectionStatus("error");
+                  showNotification("Error de red con GitHub", "error");
+              }
+          }, [showNotification]);
+
           // === CARGAR CONFIGURACIÓN DESDE GITHUB EN EL INICIO + CARGAR TOKEN LOCAL ===
           useEffect(() => {
             // Cargar token guardado en el navegador del administrador
             const savedToken = localStorage.getItem("fsnflix_github_token");
-            if (savedToken) setGitHubToken(savedToken);
+            if (savedToken) {
+                setGitHubToken(savedToken);
+                verifyGitHubAccess(savedToken);
+            }
 
             const fetchAllDataFromGithub = async () => {
               const timestamp = new Date().getTime();
@@ -253,31 +288,22 @@
                 console.log("No se pudo cargar tienda_config.json.");
                 setTiendaSync("Error");
               }
-
-              // Cargar index.html para edición directa en el nuevo tab
-              try {
-                const resIndex = await fetch(`${GITHUB_INDEX_URL}?t=${timestamp}`);
-                if (resIndex.ok) {
-                  const text = await resIndex.text();
-                  setIndexHtmlCode(text);
-                  setIndexSync("Sincronizado");
-                  setLastIndexTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-                  showNotification("Base de datos y archivos sincronizados desde tu nuevo GitHub.", "success");
-                }
-              } catch (e) {
-                console.log("No se pudo cargar index.html.");
-                setIndexSync("Error");
-              }
             };
 
             fetchAllDataFromGithub();
-          }, [showNotification]);
+          }, [showNotification, verifyGitHubAccess]);
 
-          // Guardar el Token en local storage cuando se escriba
+          // Guardar el Token en local storage cuando se escriba y validar conexión
           const handleTokenChange = (e) => {
               const token = e.target.value;
               setGitHubToken(token);
               localStorage.setItem("fsnflix_github_token", token);
+
+              // Debounce inteligente para evitar llamadas excesivas al escribir la clave
+              if (tokenDebounceRef.current) clearTimeout(tokenDebounceRef.current);
+              tokenDebounceRef.current = setTimeout(() => {
+                  verifyGitHubAccess(token);
+              }, 800);
           };
 
           // === ESCRIBIR DIRECTAMENTE EN GITHUB CON NOTIFICACIÓN Y MODAL DE ÉXITO ===
@@ -292,8 +318,7 @@
               setIsSavingServer(true);
               
               if (filename === "peliculas.json") setPeliculasSync("Sincronizando");
-              else if (filename === "tienda_config.json") setTiendaSync("Sincronizando");
-              else setIndexSync("Sincronizando");
+              else setTiendaSync("Sincronizando");
 
               const path = filename; 
               const getUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
@@ -302,7 +327,7 @@
                   // 1. Obtener el SHA actual del archivo remoto usando el header de Autorización Bearer universal
                   const getRes = await fetch(getUrl, {
                       headers: {
-                          "Authorization": `Bearer ${cleanToken}`,
+                          "Authorization": `token ${cleanToken}`,
                           "Accept": "application/vnd.github.v3+json"
                       }
                   });
@@ -311,6 +336,10 @@
                   if (getRes.ok) {
                       const getData = await getRes.json();
                       sha = getData.sha;
+                  } else if (getRes.status === 401) {
+                      throw new Error("Token incorrecto o vencido (Error 401). El servidor denegó la autenticación.");
+                  } else if (getRes.status === 403) {
+                      throw new Error("Falta de permisos de escritura o cuota excedida (Error 403). Verifica los accesos de tu Token.");
                   } else if (getRes.status !== 404) {
                       throw new Error("No se pudo obtener el historial del archivo en GitHub. Verifica tu Token.");
                   }
@@ -332,7 +361,7 @@
                   const putRes = await fetch(getUrl, {
                       method: "PUT",
                       headers: {
-                          "Authorization": `Bearer ${cleanToken}`,
+                          "Authorization": `token ${cleanToken}`,
                           "Content-Type": "application/json",
                           "Accept": "application/vnd.github.v3+json"
                       },
@@ -344,12 +373,9 @@
                       if (filename === "peliculas.json") {
                           setPeliculasSync("Sincronizado");
                           setLastPeliculasTime(timestampStr);
-                      } else if (filename === "tienda_config.json") {
+                      } else {
                           setTiendaSync("Sincronizado");
                           setLastTiendaTime(timestampStr);
-                      } else {
-                          setIndexSync("Sincronizado");
-                          setLastIndexTime(timestampStr);
                       }
                       
                       // Desplegar Modal flotante de Éxito de Confirmación Directa
@@ -362,8 +388,7 @@
               } catch (error) {
                   console.error(error);
                   if (filename === "peliculas.json") setPeliculasSync("Error");
-                  else if (filename === "tienda_config.json") setTiendaSync("Error");
-                  else setIndexSync("Error");
+                  else setTiendaSync("Error");
                   showNotification(`Error: ${error.message}`, "error");
               } finally {
                   setIsSavingServer(false);
@@ -387,11 +412,6 @@
               };
               const content = JSON.stringify(config, null, 2);
               saveFileToGitHub("tienda_config.json", content);
-          };
-
-          // Función para guardar index.html en GitHub
-          const commitIndexToGitHub = () => {
-              saveFileToGitHub("index.html", indexHtmlCode);
           };
 
           const nextSlide = useCallback(() => {
@@ -542,7 +562,7 @@
 
           const deleteMovieFromSlider = (id, e) => {
             e.stopPropagation();
-            if (movies.length <= 1) return showNotification("Debe haber al menos 1 película.", "error");
+            if (movies.length <= 1) return showNotification("Debe haber al menos 1 película activa.", "error");
             setMovies(prev => prev.filter(m => m.id !== id));
             setCurrentIndex(0); setSlideProgress(0);
             showNotification("Película eliminada.", "success");
@@ -599,10 +619,34 @@
               }
           };
 
-          const toggleScannedSelection = (id) => {
-            setSelectedScannedIds(prev => 
-              prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-            );
+          const handleImportJson = (e) => {
+            try {
+              const rawText = e.target.value;
+              const parsed = JSON.parse(rawText);
+              if (Array.isArray(parsed)) {
+                setMovies(parsed);
+                setCurrentIndex(0);
+                setSlideProgress(0);
+                showNotification("JSON importado con éxito.", "success");
+              }
+            } catch (err) {
+              // Ignorar
+            }
+          };
+
+          const copyJSONToClipboard = () => {
+            const jsonString = JSON.stringify(movies, null, 2);
+            const textNode = document.createElement("textarea");
+            textNode.value = jsonString;
+            document.body.appendChild(textNode);
+            textNode.select();
+            try {
+              document.execCommand('copy');
+              showNotification("¡JSON copiado!", "success");
+            } catch (e) {
+              showNotification("Fallo al copiar.", "error");
+            }
+            document.body.removeChild(textNode);
           };
 
           const currentMovie = movies[currentIndex] || DEFAULT_MOVIES[0];
@@ -659,35 +703,59 @@
               )}
 
               {/* NAVEGACIÓN SUPERIOR FIJA DEL COMMAND CENTER */}
-              <header className="fixed top-0 left-0 w-full z-[140] bg-black/95 backdrop-blur-md px-6 py-4 md:px-12 flex flex-col xl:flex-row justify-between items-center border-b border-white/5 gap-4">
-                <div className="flex flex-col md:flex-row items-center gap-6 w-full xl:w-auto">
+              <header className="fixed top-0 left-0 w-full z-[140] bg-black/90 backdrop-blur-md px-6 py-4 md:px-12 flex flex-col sm:flex-row justify-between items-center border-b border-white/5 gap-4">
+                <div className="flex items-center gap-8">
                   <span className="text-red-655 font-black text-3xl tracking-tighter">FSNFLIX<span className="text-white text-base font-medium opacity-40 ml-2">CONTROL</span></span>
-                  <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800 flex-wrap gap-1">
-                    <button onClick={() => setViewTab('shop')} className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'shop' ? 'bg-red-650 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}>🎪 Tienda de Cuentas</button>
-                    <button onClick={() => setViewTab('staged')} className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'staged' ? 'bg-red-650 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}>🎬 Slider Estrenos ({movies.length})</button>
-                    <button onClick={() => setViewTab('scan')} className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'scan' ? 'bg-red-650 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}>🔍 Escáner (TMDB)</button>
-                    <button onClick={() => setViewTab('indexEditor')} className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'indexEditor' ? 'bg-red-650 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}>🌐 index.html</button>
+                  <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800">
+                    <button onClick={() => setViewTab('shop')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'shop' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🎪 Tienda de Cuentas</button>
+                    <button onClick={() => setViewTab('staged')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'staged' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🎬 Estrenos del Slider ({movies.length})</button>
+                    <button onClick={() => setViewTab('scan')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'scan' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🔍 Escáner (TMDB)</button>
                   </div>
                 </div>
 
                 {/* LLAVE DE ACCESO DIRECTO A GITHUB (TOKEN PAT CON SOPORTE COMPLETO DE AUTORIZACIÓN PARA EL NUEVO GITHUB) */}
-                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
-                    <input 
-                        type="password" 
-                        value={gitHubToken}
-                        onChange={handleTokenChange}
-                        placeholder="Token de Acceso GitHub..."
-                        className={`bg-neutral-900 border px-4 py-2 rounded-xl text-xs outline-none font-mono w-full sm:w-56 placeholder-neutral-600 transition-colors ${
-                          tokenError ? 'border-red-500 ring-2 ring-red-500/20 text-red-500 animate-pulse' : 'border-neutral-800 text-emerald-400 focus:border-emerald-500'
-                        }`}
-                        title="Tu GitHub Token de escritura personal. Se almacena localmente en tu navegador."
-                    />
-                    <div className="h-6 w-px bg-neutral-800 hidden xl:block" />
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    {/* Input de contraseña/token con puntito indicador integrado en el contenedor */}
+                    <div className="relative flex items-center w-full sm:w-64">
+                        <input 
+                            type="password" 
+                            value={gitHubToken}
+                            onChange={handleTokenChange}
+                            placeholder="Contraseña / Token GitHub..."
+                            className={`bg-neutral-900 border px-4 py-2.5 pr-8 rounded-xl text-xs outline-none font-mono w-full placeholder-neutral-600 transition-colors ${
+                              tokenError ? 'border-red-500 ring-2 ring-red-500/20 text-red-500 animate-pulse' : 'border-neutral-800 text-emerald-400 focus:border-emerald-500'
+                            }`}
+                            title="Tu GitHub Token de escritura personal. Se almacena localmente en tu navegador."
+                        />
+                        {/* El puntito indicador de contacto en vivo solicitado */}
+                        <div className="absolute right-3 flex items-center justify-center">
+                            {connectionStatus === "checking" && (
+                                <span className="flex h-2.5 w-2.5 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500" title="Verificando acceso con GitHub..." />
+                                </span>
+                            )}
+                            {connectionStatus === "connected" && (
+                                <span className="flex h-2.5 w-2.5 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" title="¡Conectado exitosamente con FusionFlix/Streaming!" />
+                                </span>
+                            )}
+                            {connectionStatus === "error" && (
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" title="Error de autenticación o repositorio inaccesible" />
+                            )}
+                            {connectionStatus === "disconnected" && (
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neutral-600" title="Token no ingresado" />
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className="h-6 w-px bg-neutral-800 hidden sm:block" />
                     
                     <button 
                         onClick={commitCatalogToGitHub} 
                         disabled={isSavingServer}
-                        className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-[10px] font-black uppercase tracking-widest text-neutral-300 hover:text-white flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
+                        className="px-3.5 py-2.5 bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-[10px] font-black uppercase tracking-widest text-neutral-300 hover:text-white flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
                     >
                         {peliculasSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar peliculas.json"}
                     </button>
@@ -695,17 +763,9 @@
                     <button 
                         onClick={commitStoreToGitHub} 
                         disabled={isSavingServer}
-                        className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-[10px] font-black uppercase tracking-widest text-neutral-300 hover:text-white flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
+                        className="px-3.5 py-2.5 bg-red-655 hover:bg-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/10 flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
                     >
                         {tiendaSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar tienda_config.json"}
-                    </button>
-
-                    <button 
-                        onClick={commitIndexToGitHub} 
-                        disabled={isSavingServer}
-                        className="px-3.5 py-2 bg-red-655 hover:bg-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/10 flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
-                    >
-                        {indexSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar index.html"}
                     </button>
                 </div>
               </header>
@@ -789,14 +849,14 @@
                              <div className="absolute top-3 right-3 flex gap-1.5 z-30">
                                <button 
                                  onClick={() => setEditingStoreService({ ...service, features: Array.isArray(service.features) ? service.features.join('\n') : service.features })} 
-                                 className="bg-neutral-950/90 hover:bg-blue-600 p-2.5 rounded-xl border border-white/10 text-white transition-all shadow-md active:scale-95"
+                                 className="bg-neutral-955/90 hover:bg-blue-600 p-2.5 rounded-xl border border-white/10 text-white transition-all shadow-md active:scale-95"
                                  title="Editar plataforma"
                                >
                                  ✏️
                                </button>
                                <button 
                                  onClick={(e) => deleteStoreService(service.id, e)} 
-                                 className="bg-neutral-950/90 hover:bg-red-655 p-2.5 rounded-xl border border-white/10 text-white transition-all shadow-md active:scale-95"
+                                 className="bg-neutral-955/90 hover:bg-red-655 p-2.5 rounded-xl border border-white/10 text-white transition-all shadow-md active:scale-95"
                                  title="Eliminar plataforma"
                                >
                                  🗑️
@@ -923,9 +983,7 @@
                         <input type="text" value={customSearchQuery} onChange={e => setCustomSearchQuery(e.target.value)} placeholder="Ej: Avengers, The Boys, Anime..." className="w-full bg-neutral-950 border border-neutral-850 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-650 transition-colors" />
                       </div>
 
-                      <button onClick={runSmartScanner} disabled={isScanning} className="w-full py-4 bg-white text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-neutral-200 transition-all">
-                        {isScanning ? 'Sincronizando...' : 'Iniciar Escaneo de Estrenos'}
-                      </button>
+                      <button onClick={runSmartScanner} disabled={isScanning} className="w-full py-4 bg-white text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-neutral-200 transition-all">{isScanning ? 'Sincronizando...' : 'Iniciar Escaneo de Estrenos'}</button>
                     </div>
 
                     <div className="lg:col-span-2 space-y-4">
@@ -956,41 +1014,6 @@
                         })}
                         {scannedCatalog.length === 0 && <div className="col-span-full py-16 text-center text-neutral-600 text-xs font-bold border-2 border-dashed border-neutral-900 rounded-3xl">Utiliza el buscador izquierdo para escanear y cargar estrenos.</div>}
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* VISTA 4: EDITOR DIRECTO DE INDEX.HTML */}
-                {viewTab === 'indexEditor' && (
-                  <div className="space-y-6 animate-fade-in">
-                    <div className="border-b border-neutral-900 pb-4 flex justify-between items-end flex-wrap gap-4">
-                      <div>
-                        <h2 className="text-3xl font-black uppercase tracking-tight">Estructura index.html</h2>
-                        <p className="text-neutral-500 text-xs mt-1">Este editor interactivo te permite revisar y sincronizar de forma directa el diseño visual de la web principal de tus clientes.</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button 
-                            onClick={commitIndexToGitHub}
-                            disabled={isSavingServer}
-                            className="px-5 py-3 bg-red-655 hover:bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-40"
-                        >
-                            ✓ Subir index.html a GitHub
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-neutral-900/40 border border-neutral-900 p-6 rounded-3xl space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-red-550 font-black text-xs uppercase tracking-widest">Código Fuente HTML/React</span>
-                        <span className="text-xs text-neutral-500">Último commit local: {lastIndexTime || 'Nunca'}</span>
-                      </div>
-                      <textarea 
-                        value={indexHtmlCode} 
-                        onChange={(e) => setIndexHtmlCode(e.target.value)}
-                        rows={16}
-                        className="w-full bg-black text-neutral-250 font-mono text-xs p-5 rounded-2xl border border-neutral-850 outline-none focus:border-red-600 leading-relaxed scrollbar-thin"
-                        placeholder="Código de index.html..."
-                      />
                     </div>
                   </div>
                 )}
