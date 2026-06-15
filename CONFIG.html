@@ -65,6 +65,7 @@
         const GITHUB_REPO = "Streaming";
         const GITHUB_CATALOG_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/peliculas.json";
         const GITHUB_STORE_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/tienda_config.json";
+        const GITHUB_INDEX_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/index.html";
 
         const TMDB_API_KEY = "80abb144cad61c0ce5f2640337b1187c";
 
@@ -132,6 +133,16 @@
             return [];
         };
 
+        // Función robusta para Base64 que evita desbordamiento de pila (Call Stack size exceeded)
+        const bytesToBase64 = (bytes) => {
+            let binary = '';
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        };
+
         const PlatformLogo = ({ platform, sizeClass = "h-8", shopCatalog = [], isGrayscale = false }) => {
             const activeService = shopCatalog?.find(s => s.name.toLowerCase() === platform?.toLowerCase());
             const fallbackService = MASTER_SERVICES_DB.find(s => s.name.toLowerCase() === platform?.toLowerCase());
@@ -144,7 +155,7 @@
         };
 
         const App = () => {
-          const [viewTab, setViewTab] = useState("shop"); // shop | staged | scan
+          const [viewTab, setViewTab] = useState("shop"); // shop | staged | scan | indexEditor
           const [movies, setMovies] = useState(DEFAULT_MOVIES);
           const [currentIndex, setCurrentIndex] = useState(0);
           const [slideProgress, setSlideProgress] = useState(0);
@@ -160,10 +171,15 @@
           const [gitHubToken, setGitHubToken] = useState("");
           const [peliculasSync, setPeliculasSync] = useState("Sin Sincronizar"); // "Sincronizando" | "Sincronizado" | "Error"
           const [tiendaSync, setTiendaSync] = useState("Sin Sincronizar");
+          const [indexSync, setIndexSync] = useState("Sin Sincronizar");
           const [lastPeliculasTime, setLastPeliculasTime] = useState("");
           const [lastTiendaTime, setLastTiendaTime] = useState("");
+          const [lastIndexTime, setLastIndexTime] = useState("");
           const [showSuccessModal, setShowSuccessModal] = useState(null); // { filename: "peliculas.json", time: "16:25" }
           const [tokenError, setTokenError] = useState(false);
+
+          // EDITOR DIRECTO DE INDEX.HTML (NUEVA CARACTERÍSTICA PARA AUTOMATIZAR LA WEB PRINCIPAL)
+          const [indexHtmlCode, setIndexHtmlCode] = useState("");
 
           // ESTADOS DEL ESCÁNER TMDB
           const [targetPlatform, setTargetPlatform] = useState("Netflix");
@@ -230,13 +246,27 @@
                       setShopCatalog(parsedServices);
                       setTiendaSync("Sincronizado");
                       setLastTiendaTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-                      showNotification("Base de datos cargada desde tu GitHub.", "success");
                     }
                   }
                 }
               } catch (e) {
                 console.log("No se pudo cargar tienda_config.json.");
                 setTiendaSync("Error");
+              }
+
+              // Cargar index.html para edición directa en el nuevo tab
+              try {
+                const resIndex = await fetch(`${GITHUB_INDEX_URL}?t=${timestamp}`);
+                if (resIndex.ok) {
+                  const text = await resIndex.text();
+                  setIndexHtmlCode(text);
+                  setIndexSync("Sincronizado");
+                  setLastIndexTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                  showNotification("Base de datos y archivos sincronizados desde tu nuevo GitHub.", "success");
+                }
+              } catch (e) {
+                console.log("No se pudo cargar index.html.");
+                setIndexSync("Error");
               }
             };
 
@@ -251,8 +281,9 @@
           };
 
           // === ESCRIBIR DIRECTAMENTE EN GITHUB CON NOTIFICACIÓN Y MODAL DE ÉXITO ===
-          const saveFileToGitHub = async (filename, dataToSave) => {
-              if (!gitHubToken.trim()) {
+          const saveFileToGitHub = async (filename, contentString) => {
+              const cleanToken = gitHubToken.trim();
+              if (!cleanToken) {
                   setTokenError(true);
                   showNotification("¡Error! Ingresa tu Token de GitHub para guardar directamente.", "error");
                   setTimeout(() => setTokenError(false), 3000);
@@ -261,16 +292,17 @@
               setIsSavingServer(true);
               
               if (filename === "peliculas.json") setPeliculasSync("Sincronizando");
-              else setTiendaSync("Sincronizando");
+              else if (filename === "tienda_config.json") setTiendaSync("Sincronizando");
+              else setIndexSync("Sincronizando");
 
               const path = filename; 
               const getUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
 
               try {
-                  // 1. Obtener el SHA actual del archivo remoto
+                  // 1. Obtener el SHA actual del archivo remoto usando el header de Autorización Bearer universal
                   const getRes = await fetch(getUrl, {
                       headers: {
-                          "Authorization": `token ${gitHubToken}`,
+                          "Authorization": `Bearer ${cleanToken}`,
                           "Accept": "application/vnd.github.v3+json"
                       }
                   });
@@ -280,13 +312,12 @@
                       const getData = await getRes.json();
                       sha = getData.sha;
                   } else if (getRes.status !== 404) {
-                      throw new Error("No se pudo obtener el historial del archivo en GitHub.");
+                      throw new Error("No se pudo obtener el historial del archivo en GitHub. Verifica tu Token.");
                   }
 
-                  // 2. Formatear y convertir a Base64 compatible con UTF-8
-                  const jsonString = JSON.stringify(dataToSave, null, 2);
-                  const utf8Bytes = new TextEncoder().encode(jsonString);
-                  const base64Content = btoa(String.fromCharCode(...utf8Bytes));
+                  // 2. Formatear y convertir a Base64 compatible con UTF-8 de forma stack-overflow-safe
+                  const utf8Bytes = new TextEncoder().encode(contentString);
+                  const base64Content = bytesToBase64(utf8Bytes);
 
                   // 3. Sobreescribir el archivo en la rama principal (main)
                   const putBody = {
@@ -301,7 +332,7 @@
                   const putRes = await fetch(getUrl, {
                       method: "PUT",
                       headers: {
-                          "Authorization": `token ${gitHubToken}`,
+                          "Authorization": `Bearer ${cleanToken}`,
                           "Content-Type": "application/json",
                           "Accept": "application/vnd.github.v3+json"
                       },
@@ -313,9 +344,12 @@
                       if (filename === "peliculas.json") {
                           setPeliculasSync("Sincronizado");
                           setLastPeliculasTime(timestampStr);
-                      } else {
+                      } else if (filename === "tienda_config.json") {
                           setTiendaSync("Sincronizado");
                           setLastTiendaTime(timestampStr);
+                      } else {
+                          setIndexSync("Sincronizado");
+                          setLastIndexTime(timestampStr);
                       }
                       
                       // Desplegar Modal flotante de Éxito de Confirmación Directa
@@ -328,7 +362,8 @@
               } catch (error) {
                   console.error(error);
                   if (filename === "peliculas.json") setPeliculasSync("Error");
-                  else setTiendaSync("Error");
+                  else if (filename === "tienda_config.json") setTiendaSync("Error");
+                  else setIndexSync("Error");
                   showNotification(`Error: ${error.message}`, "error");
               } finally {
                   setIsSavingServer(false);
@@ -337,7 +372,8 @@
 
           // Función para guardar peliculas.json en GitHub
           const commitCatalogToGitHub = () => {
-              saveFileToGitHub("peliculas.json", movies);
+              const content = JSON.stringify(movies, null, 2);
+              saveFileToGitHub("peliculas.json", content);
           };
 
           // Función para guardar tienda_config.json en GitHub
@@ -349,7 +385,13 @@
                       features: Array.isArray(s.features) ? s.features : s.features.split('\n').map(f => f.trim()).filter(Boolean)
                   }))
               };
-              saveFileToGitHub("tienda_config.json", config);
+              const content = JSON.stringify(config, null, 2);
+              saveFileToGitHub("tienda_config.json", content);
+          };
+
+          // Función para guardar index.html en GitHub
+          const commitIndexToGitHub = () => {
+              saveFileToGitHub("index.html", indexHtmlCode);
           };
 
           const nextSlide = useCallback(() => {
@@ -557,34 +599,10 @@
               }
           };
 
-          const handleImportJson = (e) => {
-            try {
-              const rawText = e.target.value;
-              const parsed = JSON.parse(rawText);
-              if (Array.isArray(parsed)) {
-                setMovies(parsed);
-                setCurrentIndex(0);
-                setSlideProgress(0);
-                showNotification("JSON importado con éxito.", "success");
-              }
-            } catch (err) {
-              // Ignorar
-            }
-          };
-
-          const copyJSONToClipboard = () => {
-            const jsonString = JSON.stringify(movies, null, 2);
-            const textNode = document.createElement("textarea");
-            textNode.value = jsonString;
-            document.body.appendChild(textNode);
-            textNode.select();
-            try {
-              document.execCommand('copy');
-              showNotification("¡JSON copiado!", "success");
-            } catch (e) {
-              showNotification("Fallo al copiar.", "error");
-            }
-            document.body.removeChild(textNode);
+          const toggleScannedSelection = (id) => {
+            setSelectedScannedIds(prev => 
+              prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+            );
           };
 
           const currentMovie = movies[currentIndex] || DEFAULT_MOVIES[0];
@@ -641,61 +659,58 @@
               )}
 
               {/* NAVEGACIÓN SUPERIOR FIJA DEL COMMAND CENTER */}
-              <header className="fixed top-0 left-0 w-full z-[140] bg-black/90 backdrop-blur-md px-6 py-4 md:px-12 flex flex-col sm:flex-row justify-between items-center border-b border-white/5 gap-4">
-                <div className="flex items-center gap-8">
+              <header className="fixed top-0 left-0 w-full z-[140] bg-black/95 backdrop-blur-md px-6 py-4 md:px-12 flex flex-col xl:flex-row justify-between items-center border-b border-white/5 gap-4">
+                <div className="flex flex-col md:flex-row items-center gap-6 w-full xl:w-auto">
                   <span className="text-red-655 font-black text-3xl tracking-tighter">FSNFLIX<span className="text-white text-base font-medium opacity-40 ml-2">CONTROL</span></span>
-                  <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800">
-                    <button onClick={() => setViewTab('shop')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'shop' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🎪 Tienda de Cuentas</button>
-                    <button onClick={() => setViewTab('staged')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'staged' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🎬 Estrenos del Slider ({movies.length})</button>
-                    <button onClick={() => setViewTab('scan')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'scan' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🔍 Escáner (TMDB)</button>
+                  <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800 flex-wrap gap-1">
+                    <button onClick={() => setViewTab('shop')} className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'shop' ? 'bg-red-650 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}>🎪 Tienda de Cuentas</button>
+                    <button onClick={() => setViewTab('staged')} className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'staged' ? 'bg-red-650 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}>🎬 Slider Estrenos ({movies.length})</button>
+                    <button onClick={() => setViewTab('scan')} className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'scan' ? 'bg-red-650 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}>🔍 Escáner (TMDB)</button>
+                    <button onClick={() => setViewTab('indexEditor')} className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'indexEditor' ? 'bg-red-650 text-white shadow-lg' : 'text-neutral-400 hover:text-white'}`}>🌐 index.html</button>
                   </div>
                 </div>
 
-                {/* LLAVE DE ACCESO DIRECTO A GITHUB (TOKEN PAT) */}
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                {/* LLAVE DE ACCESO DIRECTO A GITHUB (TOKEN PAT CON SOPORTE COMPLETO DE AUTORIZACIÓN PARA EL NUEVO GITHUB) */}
+                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
                     <input 
                         type="password" 
                         value={gitHubToken}
                         onChange={handleTokenChange}
-                        placeholder="Contraseña / Token GitHub..."
-                        className={`bg-neutral-900 border px-4 py-2.5 rounded-xl text-xs outline-none font-mono w-full sm:w-48 placeholder-neutral-600 transition-colors ${
+                        placeholder="Token de Acceso GitHub..."
+                        className={`bg-neutral-900 border px-4 py-2 rounded-xl text-xs outline-none font-mono w-full sm:w-56 placeholder-neutral-600 transition-colors ${
                           tokenError ? 'border-red-500 ring-2 ring-red-500/20 text-red-500 animate-pulse' : 'border-neutral-800 text-emerald-400 focus:border-emerald-500'
                         }`}
                         title="Tu GitHub Token de escritura personal. Se almacena localmente en tu navegador."
                     />
-                    <div className="h-6 w-px bg-neutral-800 hidden sm:block" />
+                    <div className="h-6 w-px bg-neutral-800 hidden xl:block" />
                     
-                    {/* Botón Guardar peliculas.json con estado dinámico */}
-                    <div className="relative group">
-                        <button 
-                            onClick={commitCatalogToGitHub} 
-                            disabled={isSavingServer}
-                            className="px-3.5 py-2.5 bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-[10px] font-black uppercase tracking-widest text-neutral-300 hover:text-white flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
-                        >
-                            {peliculasSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar peliculas.json"}
-                        </button>
-                        <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-[9px] text-neutral-400 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Último commit: {lastPeliculasTime || 'Nunca'}
-                        </span>
-                    </div>
+                    <button 
+                        onClick={commitCatalogToGitHub} 
+                        disabled={isSavingServer}
+                        className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-[10px] font-black uppercase tracking-widest text-neutral-300 hover:text-white flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
+                    >
+                        {peliculasSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar peliculas.json"}
+                    </button>
+                    
+                    <button 
+                        onClick={commitStoreToGitHub} 
+                        disabled={isSavingServer}
+                        className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-[10px] font-black uppercase tracking-widest text-neutral-300 hover:text-white flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
+                    >
+                        {tiendaSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar tienda_config.json"}
+                    </button>
 
-                    {/* Botón Guardar tienda_config.json con estado dinámico */}
-                    <div className="relative group">
-                        <button 
-                            onClick={commitStoreToGitHub} 
-                            disabled={isSavingServer}
-                            className="px-3.5 py-2.5 bg-red-655 hover:bg-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/10 flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
-                        >
-                            {tiendaSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar tienda_config.json"}
-                        </button>
-                        <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-[9px] text-neutral-400 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Último commit: {lastTiendaTime || 'Nunca'}
-                        </span>
-                    </div>
+                    <button 
+                        onClick={commitIndexToGitHub} 
+                        disabled={isSavingServer}
+                        className="px-3.5 py-2 bg-red-655 hover:bg-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/10 flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
+                    >
+                        {indexSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar index.html"}
+                    </button>
                 </div>
               </header>
 
-              {/* LIVE SIMULATOR SLIDER RESTABLECIDO */}
+              {/* LIVE SIMULATOR SLIDER RESTABLECIDO EN PESTAÑA PRINCIPAL */}
               {viewTab === "shop" && (
                 <section className="relative w-full h-[55vh] min-h-[450px] flex items-end overflow-hidden bg-black select-none mt-[80px]">
                   {movies.map((movie, index) => (
@@ -733,7 +748,7 @@
                 <div className="bg-neutral-900 border-b border-neutral-800 py-4 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
                     <span className="text-xs font-black uppercase tracking-widest text-neutral-400 whitespace-nowrap">Velocidad: <span className="text-red-500 ml-1">{slideSpeed/1000} Segundos</span></span>
-                    <input type="range" min="1000" max="10000" step="1000" value={slideSpeed} onChange={e => { setSlideSpeed(Number(e.target.value)); resetAutoplay(); }} className="w-48 md:w-64 h-1.5 bg-neutral-950 rounded-lg appearance-none cursor-pointer accent-red-655" />
+                    <input type="range" min="1000" max="10000" step="1000" value={slideSpeed} onChange={e => { setSlideSpeed(Number(e.target.value)); resetAutoplay(); }} className="w-48 md:w-64 h-1.5 bg-neutral-955 rounded-lg appearance-none cursor-pointer accent-red-655" />
                   </div>
                   <div className="w-full md:flex-1 md:ml-12 flex flex-col gap-1.5">
                     <div className="w-full h-[3.5px] bg-neutral-950 rounded-full overflow-hidden">
@@ -941,6 +956,41 @@
                         })}
                         {scannedCatalog.length === 0 && <div className="col-span-full py-16 text-center text-neutral-600 text-xs font-bold border-2 border-dashed border-neutral-900 rounded-3xl">Utiliza el buscador izquierdo para escanear y cargar estrenos.</div>}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* VISTA 4: EDITOR DIRECTO DE INDEX.HTML */}
+                {viewTab === 'indexEditor' && (
+                  <div className="space-y-6 animate-fade-in">
+                    <div className="border-b border-neutral-900 pb-4 flex justify-between items-end flex-wrap gap-4">
+                      <div>
+                        <h2 className="text-3xl font-black uppercase tracking-tight">Estructura index.html</h2>
+                        <p className="text-neutral-500 text-xs mt-1">Este editor interactivo te permite revisar y sincronizar de forma directa el diseño visual de la web principal de tus clientes.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                            onClick={commitIndexToGitHub}
+                            disabled={isSavingServer}
+                            className="px-5 py-3 bg-red-655 hover:bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-40"
+                        >
+                            ✓ Subir index.html a GitHub
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-neutral-900/40 border border-neutral-900 p-6 rounded-3xl space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-red-550 font-black text-xs uppercase tracking-widest">Código Fuente HTML/React</span>
+                        <span className="text-xs text-neutral-500">Último commit local: {lastIndexTime || 'Nunca'}</span>
+                      </div>
+                      <textarea 
+                        value={indexHtmlCode} 
+                        onChange={(e) => setIndexHtmlCode(e.target.value)}
+                        rows={16}
+                        className="w-full bg-black text-neutral-250 font-mono text-xs p-5 rounded-2xl border border-neutral-850 outline-none focus:border-red-600 leading-relaxed scrollbar-thin"
+                        placeholder="Código de index.html..."
+                      />
                     </div>
                   </div>
                 )}
