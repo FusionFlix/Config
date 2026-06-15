@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>Generador de Catálogo - FSNFLIX Control Command</title>
+    <title>Generador de Catálogo y Tienda - FSNFLIX Control Command</title>
     <!-- CDN de Tailwind CSS para el diseño premium -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React y ReactDOM para la interactividad de la UI -->
@@ -60,11 +60,11 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
 
-        // PARÁMETROS DE TU REPOSITORIO DE GITHUB
-        const GITHUB_OWNER = "DRAKENVOLK";
-        const GITHUB_REPO = "FNSFLIX";
-        const GITHUB_CATALOG_URL = "https://raw.githubusercontent.com/DRAKENVOLK/FNSFLIX/main/peliculas.json";
-        const GITHUB_STORE_URL = "https://raw.githubusercontent.com/DRAKENVOLK/FNSFLIX/main/tienda_config.json";
+        // PARÁMETROS SINCRONIZADOS DE TU NUEVO REPOSITORIO DE GITHUB (FusionFlix / Streaming)
+        const GITHUB_OWNER = "FusionFlix";
+        const GITHUB_REPO = "Streaming";
+        const GITHUB_CATALOG_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/peliculas.json";
+        const GITHUB_STORE_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/tienda_config.json";
 
         const TMDB_API_KEY = "80abb144cad61c0ce5f2640337b1187c";
 
@@ -90,22 +90,22 @@
             { id: 'netflix', name: 'Netflix', color: '#E50914', plan: 'Plan Premium 4K', price: '24.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg', features: 'Calidad 4K HDR\nPerfiles estables con PIN\nEvasión de bloqueo de hogar', btnText: '#ffffff', status: 'Disponible', badge: '' },
             { id: 'disney', name: 'Disney+', color: '#0063E5', plan: 'Plan Estándar', price: '15.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg', features: 'Disney, Pixar y Marvel\nDeportes por ESPN\nResolución 1080p', btnText: '#ffffff', status: 'Disponible', badge: '' },
             { id: 'max', name: 'Max', color: '#002BE7', plan: 'Plan Platino', price: '18.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Max_logo.svg', features: 'Catálogo de HBO y DC\nEstabilidad garantizada\nResolución Full HD', btnText: '#ffffff', status: 'Disponible', badge: '' },
-            { id: 'prime', name: 'Prime Video', color: '#00A8E1', plan: 'Plan Mensual', price: '12.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png', features: 'Series originales\nCalidad 4K HDR\nSin anuncios', btnText: '#000000', status: 'Disponible', badge: '' },
+            { id: 'prime', name: 'Prime Video', color: '#00A8E1', plan: 'Plan Mensual', price: '12.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png', features: 'Series originales de Amazon\n3 dispositivos simultáneos\nCalidad 4K HDR\nSin anuncios', btnText: '#000000', status: 'Disponible', badge: '' },
             { id: 'crunchyroll', name: 'Crunchyroll', color: '#F47521', plan: 'Mega Fan', price: '12.00', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Crunchyroll_Logo.png', features: 'Sin publicidad\nEpisodios estreno simultáneo\nCatálogo completo de anime', btnText: '#000000', status: 'Disponible', badge: '' },
             { id: 'spotify', name: 'Spotify', color: '#1DB954', plan: 'Premium Individual', price: '14.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg', features: 'Música sin anuncios\nEscucha sin conexión\nAudio de alta calidad', btnText: '#000000', status: 'Disponible', badge: 'Oferta' },
-            { id: 'youtube', name: 'YouTube', color: '#FF0000', plan: 'Premium Familiar', price: '16.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg', features: 'Videos sin anuncios\nYouTube Music incluido\nReproducción en 2do plano', btnText: '#ffffff', status: 'Disponible', badge: '' },
+            { id: 'youtube', name: 'YouTube', color: '#FF0000', plan: 'Premium Familiar', price: '16.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg', features: 'Videos sin anuncios\nYouTube Music Premium\nReproducción en segundo plano', btnText: '#ffffff', status: 'Disponible', badge: '' },
             { id: 'paramount', name: 'Paramount+', color: '#0064FF', plan: 'Plan Básico', price: '10.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Paramount_Plus.svg', features: 'Películas de éxito\nDeportes en vivo\nContenido de Nickelodeon', btnText: '#ffffff', status: 'Disponible', badge: '' },
-            { id: 'appletv', name: 'Apple TV+', color: '#ffffff', plan: 'Plan Mensual', price: '15.00', logoUrl: 'https://1000logos.net/wp-content/uploads/2022/02/Apple-TV-Logo-1.png', features: 'Producciones originales\nCalidad visual premium\nAlta fidelidad', btnText: '#000000', status: 'Disponible', badge: '' },
-            { id: 'vix', name: 'ViX Premium', color: '#FF6B00', plan: 'Plan Mensual', price: '18.00', logoUrl: 'https://www.hollywoodreporter.com/wp-content/uploads/2024/01/ViX_logo-1-H-2024.jpg', features: 'Liga MX exclusiva\nLiga Española\nTelenovelas premium', btnText: '#ffffff', status: 'Disponible', badge: '' },
+            { id: 'appletv', name: 'Apple TV+', color: '#ffffff', plan: 'Plan Mensual', price: '15.00', logoUrl: 'https://1000logos.net/wp-content/uploads/2022/02/Apple-TV-Logo-1.png', features: 'Producciones originales Apple\nCalidad visual de alta gama\nAlta fidelidad', btnText: '#000000', status: 'Disponible', badge: '' },
+            { id: 'vix', name: 'ViX Premium', color: '#FF6B00', plan: 'Plan Mensual', price: '18.00', logoUrl: 'https://www.hollywoodreporter.com/wp-content/uploads/2024/01/ViX_logo-1-H-2024.jpg', features: 'Liga MX en vivo\nLiga Española exclusiva\nTelenovelas premium', btnText: '#ffffff', status: 'Disponible', badge: '' },
             { id: 'canva', name: 'Canva Pro', color: '#00C4CC', plan: 'Educativo / Equipos', price: '10.00', logoUrl: 'https://edudigital.pro/wp-content/uploads/2024/03/CANVAPRO.png', features: 'Herramientas Pro de diseño\nPlantillas infinitas\nActivación en tu propio correo', btnText: '#000000', status: 'Disponible', badge: '' },
-            { id: 'magis', name: 'Magis TV', color: '#FFD700', plan: 'Panel IPTV', price: '20.00', logoUrl: 'https://magisstvapp.com/wp-content/uploads/2026/03/cropped-magiss-tv-app-logo-02-01.png', features: 'Miles de canales premium en vivo\nDeportes PPV en directo\nCatálogo de películas integrado', btnText: '#000000', status: 'Disponible', badge: 'RECOMENDADO' },
+            { id: 'magis', name: 'Magis TV', color: '#FFD700', plan: 'Panel IPTV', price: '20.00', logoUrl: 'https://magisstvapp.com/wp-content/uploads/2026/03/cropped-magiss-tv-app-logo-02-01.png', features: 'Canales en vivo Full HD\nDeportes PPV desbloqueados\nCatálogo de películas VOD', btnText: '#000000', status: 'Disponible', badge: 'RECOMENDADO' },
             { id: 'viki', name: 'Viki Rakuten', color: '#11B3E0', plan: 'Pass Plus', price: '16.00', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/18/Rakuten_Viki_Logo.svg', features: 'K-Dramas en estreno\nSubtítulos de alta calidad\nSin anuncios', btnText: '#ffffff', status: 'Disponible', badge: '' }
         ];
 
         const PLATFORM_THEMES = {
           "Netflix": { brandColor: "from-red-600 to-red-800", textColor: "text-red-500", borderActive: "border-red-600", accentBg: "bg-red-600", badgeBg: "bg-red-950/70 text-red-300 border-red-900/50" },
           "Disney+": { brandColor: "from-cyan-500 to-blue-600", textColor: "text-cyan-400", borderActive: "border-cyan-500", accentBg: "bg-cyan-500", badgeBg: "bg-cyan-950/70 text-cyan-300 border-cyan-900/50" },
-          "Crunchyroll": { brandColor: "from-amber-500 to-orange-600", textColor: "text-amber-500", borderActive: "border-amber-500", accentBg: "bg-amber-500", badgeBg: "bg-amber-950/70 text-amber-400 border-amber-800" },
+          "Crunchyroll": { brandColor: "from-amber-500 to-orange-600", textColor: "text-amber-500", borderActive: "border-amber-500", accentBg: "bg-amber-500", badgeBg: "bg-amber-950/70 text-amber-450 border-amber-800" },
           "Max": { brandColor: "from-indigo-600 to-purple-800", textColor: "text-indigo-400", borderActive: "border-indigo-600", accentBg: "bg-indigo-650", badgeBg: "bg-indigo-950/70 text-indigo-300 border-indigo-900/50" },
           "Prime Video": { brandColor: "from-sky-400 to-blue-500", textColor: "text-sky-400", borderActive: "border-sky-500", accentBg: "bg-sky-500", badgeBg: "bg-sky-950/70 text-sky-300 border-sky-900/50" },
           "Apple TV+": { brandColor: "from-neutral-400 to-neutral-600", textColor: "text-neutral-400", borderActive: "border-neutral-400", accentBg: "bg-neutral-300", badgeBg: "bg-neutral-900/70 text-neutral-350 border-neutral-700/50" },
@@ -156,13 +156,13 @@
           const [editingStoreService, setEditingStoreService] = useState(null);
           const [showPlatformSelector, setShowPlatformSelector] = useState(false);
 
-          // ESTADOS DE CONTROL DE SINCRONIZACIÓN DE GITHUB (ESTADOS NUEVOS AGREGADOS)
+          // ESTADOS DE CONTROL DE SINCRONIZACIÓN DE GITHUB (ORIENTADO AL NUEVO REPOS DE STREAMING)
           const [gitHubToken, setGitHubToken] = useState("");
           const [peliculasSync, setPeliculasSync] = useState("Sin Sincronizar"); // "Sincronizando" | "Sincronizado" | "Error"
           const [tiendaSync, setTiendaSync] = useState("Sin Sincronizar");
           const [lastPeliculasTime, setLastPeliculasTime] = useState("");
           const [lastTiendaTime, setLastTiendaTime] = useState("");
-          const [showSuccessModal, setShowSuccessModal] = useState(null); // { filename: "peliculas.json", time: "16:25" } o similar
+          const [showSuccessModal, setShowSuccessModal] = useState(null); // { filename: "peliculas.json", time: "16:25" }
           const [tokenError, setTokenError] = useState(false);
 
           // ESTADOS DEL ESCÁNER TMDB
@@ -572,12 +572,6 @@
             }
           };
 
-          const toggleScannedSelection = (id) => {
-            setSelectedScannedIds(prev => 
-              prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-            );
-          };
-
           const copyJSONToClipboard = () => {
             const jsonString = JSON.stringify(movies, null, 2);
             const textNode = document.createElement("textarea");
@@ -722,7 +716,7 @@
                     <div className="relative z-20 w-full max-w-7xl mx-auto px-6 md:px-12 pb-12 pt-28">
                       <div className="max-w-2xl space-y-3.5 text-left">
                         <div className="flex items-center gap-2 text-xs font-bold">
-                          <span className="bg-red-655/90 text-white px-3 py-1 rounded text-[10px] uppercase font-black">{currentMovie?.type}</span>
+                          <span className="bg-red-650/90 text-white px-3 py-1 rounded text-[10px] uppercase font-black">{currentMovie?.type}</span>
                           <span className="text-yellow-500">★ {currentMovie?.rating}</span>
                           <span className="text-neutral-400">• {currentMovie?.releaseYear}</span>
                         </div>
@@ -765,7 +759,7 @@
                         <h2 className="text-3xl font-black uppercase tracking-tight">Cuentas y Plataformas</h2>
                         <p className="text-neutral-500 text-xs mt-1">Administra tus perfiles comerciales. Puedes marcar stock de disponibilidad y etiquetas promocionales.</p>
                       </div>
-                      <button onClick={() => setShowPlatformSelector(true)} className="px-5 py-3 bg-red-655 hover:bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg">+ Añadir Plataforma de Reventa</button>
+                      <button onClick={() => setShowPlatformSelector(true)} className="px-5 py-3 bg-red-650 hover:bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg">+ Añadir Plataforma de Reventa</button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
