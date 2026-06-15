@@ -98,7 +98,7 @@
             { id: 'appletv', name: 'Apple TV+', color: '#ffffff', plan: 'Plan Mensual', price: '15.00', logoUrl: 'https://1000logos.net/wp-content/uploads/2022/02/Apple-TV-Logo-1.png', features: 'Producciones originales Apple\nCalidad visual de alta gama\nAlta fidelidad', btnText: '#000000', status: 'Disponible', badge: '' },
             { id: 'vix', name: 'ViX Premium', color: '#FF6B00', plan: 'Plan Mensual', price: '18.00', logoUrl: 'https://www.hollywoodreporter.com/wp-content/uploads/2024/01/ViX_logo-1-H-2024.jpg', features: 'Liga MX en vivo\nLiga Española exclusiva\nTelenovelas premium', btnText: '#ffffff', status: 'Disponible', badge: '' },
             { id: 'canva', name: 'Canva Pro', color: '#00C4CC', plan: 'Educativo / Equipos', price: '10.00', logoUrl: 'https://edudigital.pro/wp-content/uploads/2024/03/CANVAPRO.png', features: 'Herramientas Pro de diseño\nPlantillas infinitas\nActivación en tu propio correo', btnText: '#000000', status: 'Disponible', badge: '' },
-            { id: 'magis', name: 'Magis TV', color: '#FFD700', plan: 'Panel IPTV', price: '20.00', logoUrl: 'https://magisstvapp.com/wp-content/uploads/2026/03/cropped-magiss-tv-app-logo-02-01.png', features: 'Canales en vivo Full HD\nDeportes PPV desbloqueados\nCatálogo de películas VOD', btnText: '#000000', status: 'Disponible', badge: 'RECOMENDADO' },
+            { id: 'magis', name: 'Magis TV', color: '#FFD700', plan: 'Plan IPTV', price: '20.00', logoUrl: 'https://magisstvapp.com/wp-content/uploads/2026/03/cropped-magiss-tv-app-logo-02-01.png', features: 'Canales en vivo Full HD\nDeportes PPV desbloqueados\nCatálogo de películas VOD', btnText: '#000000', status: 'Disponible', badge: 'RECOMENDADO' },
             { id: 'viki', name: 'Viki Rakuten', color: '#11B3E0', plan: 'Pass Plus', price: '16.00', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/18/Rakuten_Viki_Logo.svg', features: 'K-Dramas en estreno\nSubtítulos de alta calidad\nSin anuncios', btnText: '#ffffff', status: 'Disponible', badge: '' }
         ];
 
@@ -197,7 +197,7 @@
 
           const showNotification = useCallback((message, type = 'success') => {
             setNotification({ message, type });
-            setTimeout(() => setNotification(null), 3000);
+            setTimeout(() => setNotification(null), 3500);
           }, []);
 
           // === FUNCIÓN EN VIVO: COMPROBACIÓN DE CONEXIÓN CON GITHUB (EL PUNTITO DE CONTACTO) ===
@@ -211,7 +211,7 @@
               try {
                   const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`, {
                       headers: {
-                          "Authorization": `token ${cleanToken}`,
+                          "Authorization": `Bearer ${cleanToken}`,
                           "Accept": "application/vnd.github.v3+json"
                       }
                   });
@@ -221,11 +221,13 @@
                   } else {
                       setConnectionStatus("error");
                       if (res.status === 401) {
-                          showNotification("Token incorrecto o vencido (401)", "error");
+                          showNotification("Token incorrecto o vencido (Error 401)", "error");
                       } else if (res.status === 403) {
-                          showNotification("Límite de API o falta de permisos (403)", "error");
+                          showNotification("Límite de API o falta de permisos (Error 403)", "error");
+                      } else if (res.status === 404) {
+                          showNotification("Repositorio no encontrado (Error 404)", "error");
                       } else {
-                          showNotification("Fallo al contactar el repositorio", "error");
+                          showNotification(`Fallo de conexión: Estado ${res.status}`, "error");
                       }
                   }
               } catch (e) {
@@ -324,10 +326,10 @@
               const getUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
 
               try {
-                  // 1. Obtener el SHA actual del archivo remoto usando el header de Autorización Bearer universal
+                  // 1. Obtener el SHA actual del archivo remoto usando el header de Autorización Bearer universal (Estándar recomendado)
                   const getRes = await fetch(getUrl, {
                       headers: {
-                          "Authorization": `token ${cleanToken}`,
+                          "Authorization": `Bearer ${cleanToken}`,
                           "Accept": "application/vnd.github.v3+json"
                       }
                   });
@@ -337,9 +339,9 @@
                       const getData = await getRes.json();
                       sha = getData.sha;
                   } else if (getRes.status === 401) {
-                      throw new Error("Token incorrecto o vencido (Error 401). El servidor denegó la autenticación.");
+                      throw new Error("Token incorrecto o vencido (Error 401). Verifica la autenticidad de tu Token en GitHub.");
                   } else if (getRes.status === 403) {
-                      throw new Error("Falta de permisos de escritura o cuota excedida (Error 403). Verifica los accesos de tu Token.");
+                      throw new Error("Falta de permisos de escritura o cuota excedida (Error 403). Asegúrate de activar 'Read and Write' para Contents en tu Token.");
                   } else if (getRes.status !== 404) {
                       throw new Error("No se pudo obtener el historial del archivo en GitHub. Verifica tu Token.");
                   }
@@ -361,7 +363,7 @@
                   const putRes = await fetch(getUrl, {
                       method: "PUT",
                       headers: {
-                          "Authorization": `token ${cleanToken}`,
+                          "Authorization": `Bearer ${cleanToken}`,
                           "Content-Type": "application/json",
                           "Accept": "application/vnd.github.v3+json"
                       },
@@ -634,21 +636,6 @@
             }
           };
 
-          const copyJSONToClipboard = () => {
-            const jsonString = JSON.stringify(movies, null, 2);
-            const textNode = document.createElement("textarea");
-            textNode.value = jsonString;
-            document.body.appendChild(textNode);
-            textNode.select();
-            try {
-              document.execCommand('copy');
-              showNotification("¡JSON copiado!", "success");
-            } catch (e) {
-              showNotification("Fallo al copiar.", "error");
-            }
-            document.body.removeChild(textNode);
-          };
-
           const currentMovie = movies[currentIndex] || DEFAULT_MOVIES[0];
           const activeTheme = PLATFORM_THEMES[currentMovie?.platform] || { brandColor: "from-neutral-600 to-neutral-800", accentBg: "bg-neutral-600", borderActive: "border-neutral-600" };
 
@@ -807,7 +794,7 @@
               {viewTab === "shop" && (
                 <div className="bg-neutral-900 border-b border-neutral-800 py-4 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
-                    <span className="text-xs font-black uppercase tracking-widest text-neutral-400 whitespace-nowrap">Velocidad: <span className="text-red-500 ml-1">{slideSpeed/1000} Segundos</span></span>
+                    <span className="text-xs font-black uppercase tracking-widest text-neutral-400">Velocidad: <span className="text-red-500 ml-1">{slideSpeed/1000} Segundos</span></span>
                     <input type="range" min="1000" max="10000" step="1000" value={slideSpeed} onChange={e => { setSlideSpeed(Number(e.target.value)); resetAutoplay(); }} className="w-48 md:w-64 h-1.5 bg-neutral-955 rounded-lg appearance-none cursor-pointer accent-red-655" />
                   </div>
                   <div className="w-full md:flex-1 md:ml-12 flex flex-col gap-1.5">
