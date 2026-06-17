@@ -7,11 +7,11 @@
     <title>Generador de Catálogo y Tienda - FSNFLIX Control Command</title>
     <!-- CDN de Tailwind CSS para el diseño premium -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React y ReactDOM para la interactividad de la UI -->
+    <!-- React y ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <!-- Babel para compilar el código JSX en vivo en el navegador -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Babel para compilar JSX -->
+    <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800;900&display=swap');
@@ -19,48 +19,28 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #050505;
         }
-        /* Barras de desplazamiento estilizadas */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0a0a0a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #262626;
-            border-radius: 9999px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #dc2626;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.05); }
+        ::-webkit-scrollbar-thumb:hover { background: #dc2626; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         .premium-card {
             background-color: #16161a;
             border: 1px solid rgba(255,255,255,0.05);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .premium-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
+        .premium-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
     </style>
 </head>
 <body class="text-white min-h-screen overflow-x-hidden selection:bg-red-650 selection:text-white">
     <div id="root"></div>
 
-    <script type="text/babel">
+    <script type="text/babel" data-presets="env,react">
         const { useState, useEffect, useRef, useCallback } = React;
 
-        // PARÁMETROS SINCRONIZADOS DE TU NUEVO REPOSITORIO DE GITHUB (FusionFlix / Streaming)
+        // ENLACES DEL NUEVO GITHUB (FusionFlix/Streaming)
         const GITHUB_OWNER = "FusionFlix";
         const GITHUB_REPO = "Streaming";
         const GITHUB_CATALOG_URL = "https://raw.githubusercontent.com/FusionFlix/Streaming/main/peliculas.json";
@@ -76,6 +56,7 @@
           10759: "Acción y Aventura", 10762: "Infantil", 10765: "Sci-Fi y Fantasía", 10768: "Guerra y Política"
         };
 
+        // --- VALORES POR DEFECTO A PRUEBA DE FALLOS (ESCUDO ANTI-CRASH) ---
         const DEFAULT_MOVIES = [
           {
             id: "st-5", title: "Stranger Things 5", platform: "Netflix", type: "Serie de TV",
@@ -85,7 +66,6 @@
           }
         ];
 
-        // BASE DE DATOS DE PLATAFORMAS CON LOS LOGOS OFICIALES ACTUALIZADOS
         const MASTER_SERVICES_DB = [
             { id: 'netflix', name: 'Netflix', color: '#E50914', plan: 'Plan Premium 4K', price: '24.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg', features: 'Calidad 4K HDR\nPerfiles estables con PIN\nEvasión de bloqueo de hogar', btnText: '#ffffff', status: 'Disponible', badge: '' },
             { id: 'disney', name: 'Disney+', color: '#0063E5', plan: 'Plan Estándar', price: '15.90', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg', features: 'Disney, Pixar y Marvel\nDeportes por ESPN\nResolución 1080p', btnText: '#ffffff', status: 'Disponible', badge: '' },
@@ -98,9 +78,30 @@
             { id: 'appletv', name: 'Apple TV+', color: '#ffffff', plan: 'Plan Mensual', price: '15.00', logoUrl: 'https://1000logos.net/wp-content/uploads/2022/02/Apple-TV-Logo-1.png', features: 'Producciones originales Apple\nCalidad visual de alta gama\nAlta fidelidad', btnText: '#000000', status: 'Disponible', badge: '' },
             { id: 'vix', name: 'ViX Premium', color: '#FF6B00', plan: 'Plan Mensual', price: '18.00', logoUrl: 'https://www.hollywoodreporter.com/wp-content/uploads/2024/01/ViX_logo-1-H-2024.jpg', features: 'Liga MX en vivo\nLiga Española exclusiva\nTelenovelas premium', btnText: '#ffffff', status: 'Disponible', badge: '' },
             { id: 'canva', name: 'Canva Pro', color: '#00C4CC', plan: 'Educativo / Equipos', price: '10.00', logoUrl: 'https://edudigital.pro/wp-content/uploads/2024/03/CANVAPRO.png', features: 'Herramientas Pro de diseño\nPlantillas infinitas\nActivación en tu propio correo', btnText: '#000000', status: 'Disponible', badge: '' },
-            { id: 'magis', name: 'Magis TV', color: '#FFD700', plan: 'Plan IPTV', price: '20.00', logoUrl: 'https://magisstvapp.com/wp-content/uploads/2026/03/cropped-magiss-tv-app-logo-02-01.png', features: 'Canales en vivo Full HD\nDeportes PPV desbloqueados\nCatálogo de películas VOD', btnText: '#000000', status: 'Disponible', badge: 'RECOMENDADO' },
+            { id: 'magis', name: 'Magis TV', color: '#FFD700', plan: 'Panel IPTV', price: '20.00', logoUrl: 'https://magisstvapp.com/wp-content/uploads/2026/03/cropped-magiss-tv-app-logo-02-01.png', features: 'Canales en vivo Full HD\nDeportes PPV desbloqueados\nCatálogo de películas VOD', btnText: '#000000', status: 'Disponible', badge: 'RECOMENDADO' },
             { id: 'viki', name: 'Viki Rakuten', color: '#11B3E0', plan: 'Pass Plus', price: '16.00', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/18/Rakuten_Viki_Logo.svg', features: 'K-Dramas en estreno\nSubtítulos de alta calidad\nSin anuncios', btnText: '#ffffff', status: 'Disponible', badge: '' }
         ];
+
+        const DEFAULT_PAYMENTS = [
+            { id: 'binance', name: 'Binance', logo: 'https://i.imgur.com/k0FBADb.png', qrs: ['https://i.imgur.com/j6JGfiL.png', ''], instructions: 'Abre Binance Pay y escanea el código QR oficial de pago.' },
+            { id: 'prexpe', name: 'Prexpe', logo: 'https://i.imgur.com/hYH6MS2.png', qrs: ['https://i.imgur.com/zPVSWGu.png', ''], instructions: 'Transfiere de inmediato escaneando nuestro código QR de Prex.' },
+            { id: 'yape', name: 'Yape', logo: 'https://i.imgur.com/xmJIlY1.png', qrs: ['https://i.imgur.com/BJM8hDH.png', 'https://i.imgur.com/eihEzag.png'], instructions: 'Escanea cualquiera de nuestros códigos QR de Yape desde tu celular.' },
+            { id: 'plin', name: 'Plin', logo: 'https://i.imgur.com/39r84Q8.png', qrs: ['https://i.imgur.com/BJM8hDH.png', 'https://i.imgur.com/eihEzag.png'], instructions: 'Escanea el QR interoperable para transferir directamente a nuestro Plin.' }
+        ];
+
+        const DEFAULT_SOCIALS = {
+            whatsappGroup: "https://chat.whatsapp.com/GU9mxEeGn2LCGsUxsW9KiD?s=cl&p=a&mlu=1",
+            facebook: "https://www.facebook.com/profile.php?id=61578347413295",
+            tiktok: "https://www.tiktok.com/@fusionflix2.1?_r=1&_t=ZS-97DD8LHaJzc"
+        };
+
+        const DEFAULT_META = {
+            title: "FSNFLIX | Tu Portal de Streaming Premium",
+            description: "Adquiere cuentas de streaming estables y garantizadas de Netflix, Disney+, Prime Video, Max y más.",
+            keywords: "streaming premium, netflix barato peru, yape, plin, binance pay, fusionflix",
+            ogImage: "https://image.tmdb.org/t/p/w1280/56v2dnL56CNm6CHgmqXfw88llm6.jpg",
+            ogTitle: "FSNFLIX | Cuentas Streaming 4K"
+        };
 
         const PLATFORM_THEMES = {
           "Netflix": { brandColor: "from-red-600 to-red-800", textColor: "text-red-500", borderActive: "border-red-600", accentBg: "bg-red-600", badgeBg: "bg-red-950/70 text-red-300 border-red-900/50" },
@@ -116,12 +117,9 @@
         const VIDEO_PLATFORMS = ["Netflix", "Disney+", "Crunchyroll", "Max", "Prime Video", "Apple TV+", "ViX Premium", "Magis TV"];
 
         const PLATFORM_PROVIDERS = {
-          "Netflix": { id: 8, name: "Netflix" },
-          "Disney+": { id: 337, name: "Disney Plus" },
-          "Crunchyroll": { id: 283, name: "Crunchyroll" },
-          "Max": { id: 1899, name: "Max" },
-          "Prime Video": { id: 9, name: "Amazon Prime Video" },
-          "Apple TV+": { id: 350, name: "Apple TV Plus" },
+          "Netflix": { id: 8, name: "Netflix" }, "Disney+": { id: 337, name: "Disney Plus" },
+          "Crunchyroll": { id: 283, name: "Crunchyroll" }, "Max": { id: 1899, name: "Max" },
+          "Prime Video": { id: 9, name: "Amazon Prime Video" }, "Apple TV+": { id: 350, name: "Apple TV Plus" },
           "ViX Premium": { id: 1720, name: "ViX" }
         };
 
@@ -132,337 +130,276 @@
             return [];
         };
 
-        // Función robusta para Base64 que evita desbordamiento de pila (Call Stack size exceeded)
         const bytesToBase64 = (bytes) => {
             let binary = '';
-            const len = bytes.byteLength;
-            for (let i = 0; i < len; i++) {
+            for (let i = 0; i < bytes.byteLength; i++) {
                 binary += String.fromCharCode(bytes[i]);
             }
             return window.btoa(binary);
         };
 
-        const PlatformLogo = ({ platform, sizeClass = "h-8", shopCatalog = [], isGrayscale = false }) => {
-            const activeService = shopCatalog?.find(s => s.name.toLowerCase() === platform?.toLowerCase());
-            const fallbackService = MASTER_SERVICES_DB.find(s => s.name.toLowerCase() === platform?.toLowerCase());
-            const url = activeService?.logoUrl || fallbackService?.logoUrl;
-            
-            if (url) {
-                return <img src={url} alt={platform} referrerPolicy="no-referrer" className={`max-h-[35px] max-w-[140px] w-auto object-contain object-left filter drop-shadow-sm ${isGrayscale ? 'grayscale opacity-40' : ''}`} />;
-            }
-            return <span className={`text-xs font-black uppercase tracking-widest text-white ${isGrayscale ? 'opacity-40' : ''}`}>{platform}</span>;
+        const PlatformLogo = ({ platform, sizeClass = "h-8", shopCatalog = [] }) => {
+            const srv = shopCatalog?.find(s => s.name.toLowerCase() === platform?.toLowerCase()) || MASTER_SERVICES_DB.find(s => s.name.toLowerCase() === platform?.toLowerCase());
+            if (srv && srv.logoUrl) return <img src={srv.logoUrl} alt={platform} className={`${sizeClass} w-auto object-contain filter drop-shadow-sm`} />;
+            return <span className={`text-xs font-black uppercase tracking-widest text-white`}>{platform}</span>;
         };
 
         const App = () => {
-          const [viewTab, setViewTab] = useState("shop"); // shop | staged | scan
+          const [viewTab, setViewTab] = useState("shop");
+          const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+          
+          // Slider y Películas
           const [movies, setMovies] = useState(DEFAULT_MOVIES);
           const [currentIndex, setCurrentIndex] = useState(0);
           const [slideProgress, setSlideProgress] = useState(0);
-          const [isTransitioning, setIsTransitioning] = useState(false);
 
-          // ESTADOS PARA LA TIENDA DE CUENTAS
-          const [shopCatalog, setShopCatalog] = useState([MASTER_SERVICES_DB[0], MASTER_SERVICES_DB[1], MASTER_SERVICES_DB[2], MASTER_SERVICES_DB[3]]);
+          // Tienda
+          const [shopCatalog, setShopCatalog] = useState(MASTER_SERVICES_DB);
           const [slideSpeed, setSlideSpeed] = useState(6000); 
           const [editingStoreService, setEditingStoreService] = useState(null);
           const [showPlatformSelector, setShowPlatformSelector] = useState(false);
 
-          // ESTADOS DE CONTROL DE SINCRONIZACIÓN DE GITHUB (ORIENTADO AL NUEVO REPOS DE STREAMING)
-          const [gitHubToken, setGitHubToken] = useState("");
-          const [peliculasSync, setPeliculasSync] = useState("Sin Sincronizar"); // "Sincronizando" | "Sincronizado" | "Error"
-          const [tiendaSync, setTiendaSync] = useState("Sin Sincronizar");
-          const [lastPeliculasTime, setLastPeliculasTime] = useState("");
-          const [lastTiendaTime, setLastTiendaTime] = useState("");
-          const [showSuccessModal, setShowSuccessModal] = useState(null); // { filename: "peliculas.json", time: "16:25" }
-          const [tokenError, setTokenError] = useState(false);
-          
-          // ESTADO DE CONEXIÓN DE GITHUB (PUNTITO DE CONTACTO EN VIVO)
-          const [connectionStatus, setConnectionStatus] = useState("disconnected"); // disconnected | checking | connected | error
+          // Configuración Dinámica Integral
+          const [whatsappPhone, setWhatsappPhone] = useState("51986193615");
+          const [paymentMethods, setPaymentMethods] = useState(DEFAULT_PAYMENTS);
+          const [socials, setSocials] = useState(DEFAULT_SOCIALS);
+          const [logoConfig, setLogoConfig] = useState({ type: "text", text: "FSNFLIX", url: "" });
+          const [metaTags, setMetaTags] = useState(DEFAULT_META);
 
-          // ESTADOS DEL ESCÁNER TMDB
+          // === ESTADOS PARA EL ESPEJO DE MEMORIA (DETECTA CAMBIOS REALES) ===
+          const [initialMoviesString, setInitialMoviesString] = useState(null);
+          const [initialConfigString, setInitialConfigString] = useState(null);
+          
+          const [hasUnsavedMovies, setHasUnsavedMovies] = useState(false);
+          const [hasUnsavedConfig, setHasUnsavedConfig] = useState(false);
+
+          // Github Sincronización
+          const [gitHubToken, setGitHubToken] = useState("");
+          const [connectionStatus, setConnectionStatus] = useState("disconnected"); 
+          const [isSavingServer, setIsSavingServer] = useState(false);
+          const [showSuccessModal, setShowSuccessModal] = useState(null);
+          
+          // Escáner TMDB
+          const currentYear = new Date().getFullYear();
+          const dynamicYears = [
+            { label: "Todos los años", value: "Todos" },
+            { label: `Desde ${currentYear - 2}`, value: `${currentYear - 2}` },
+            { label: `Desde ${currentYear - 1}`, value: `${currentYear - 1}` },
+            { label: `Desde ${currentYear} (Actual)`, value: `${currentYear}` },
+            { label: `Exclusivo ${currentYear + 1} (Nuevos)`, value: `${currentYear + 1}` },
+            { label: `Exclusivo ${currentYear + 2} (Futuro)`, value: `${currentYear + 2}` }
+          ];
+
           const [targetPlatform, setTargetPlatform] = useState("Netflix");
           const [customSearchQuery, setCustomSearchQuery] = useState("");
-          const [minYear, setMinYear] = useState("2025");
+          const [minYearFilter, setMinYearFilter] = useState(`${currentYear}`);
           const [isScanning, setIsScanning] = useState(false);
           const [scannedCatalog, setScannedCatalog] = useState([]);
           const [selectedScannedIds, setSelectedScannedIds] = useState([]);
-          const [jsonInput, setJsonInput] = useState("");
-          const [showJsonEditor, setShowJsonEditor] = useState(false);
-          const [isSavingServer, setIsSavingServer] = useState(false);
           
+          const [showJsonEditor, setShowJsonEditor] = useState(false);
+          const [jsonInput, setJsonInput] = useState("");
           const [notification, setNotification] = useState(null);
+          
           const progressInterval = useRef(null);
-          const touchStartX = useRef(null);
-          const touchEndX = useRef(null);
           const tokenDebounceRef = useRef(null);
+
+          const currentMovie = movies[currentIndex] || DEFAULT_MOVIES[0];
+          const activeTheme = PLATFORM_THEMES[currentMovie?.platform] || PLATFORM_THEMES["Netflix"];
 
           const showNotification = useCallback((message, type = 'success') => {
             setNotification({ message, type });
             setTimeout(() => setNotification(null), 3500);
           }, []);
 
-          // === FUNCIÓN EN VIVO: COMPROBACIÓN DE CONEXIÓN CON GITHUB (EL PUNTITO DE CONTACTO) ===
+          // === GITHUB CONNEXIÓN ===
           const verifyGitHubAccess = useCallback(async (token) => {
               const cleanToken = token.trim();
-              if (!cleanToken) {
-                  setConnectionStatus("disconnected");
-                  return;
-              }
+              if (!cleanToken) return setConnectionStatus("disconnected");
               setConnectionStatus("checking");
               try {
                   const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`, {
-                      headers: {
-                          "Authorization": `Bearer ${cleanToken}`,
-                          "Accept": "application/vnd.github.v3+json"
-                      }
+                      headers: { "Authorization": `Bearer ${cleanToken}`, "Accept": "application/vnd.github.v3+json" }
                   });
                   if (res.ok) {
                       setConnectionStatus("connected");
-                      showNotification("¡Conexión establecida con tu GitHub!", "success");
                   } else {
                       setConnectionStatus("error");
-                      if (res.status === 401) {
-                          showNotification("Token incorrecto o vencido (Error 401)", "error");
-                      } else if (res.status === 403) {
-                          showNotification("Límite de API o falta de permisos (Error 403)", "error");
-                      } else if (res.status === 404) {
-                          showNotification("Repositorio no encontrado (Error 404)", "error");
-                      } else {
-                          showNotification(`Fallo de conexión: Estado ${res.status}`, "error");
-                      }
+                      if (res.status === 401) showNotification("Token incorrecto o vencido", "error");
+                      else if (res.status === 403) showNotification("Límite de API o falta de permisos", "error");
                   }
-              } catch (e) {
-                  setConnectionStatus("error");
-                  showNotification("Error de red con GitHub", "error");
-              }
-          }, [showNotification]);
+              } catch (e) { setConnectionStatus("error"); }
+          }, []);
 
-          // === CARGAR CONFIGURACIÓN DESDE GITHUB EN EL INICIO + CARGAR TOKEN LOCAL ===
+          // Helper para construir el objeto de configuración actual
+          const getCurrentConfigObj = useCallback(() => {
+              return {
+                  globalSettings: { 
+                      slideSpeed, 
+                      whatsappPhone,
+                      logoType: logoConfig.type, 
+                      logoText: logoConfig.text, 
+                      logoUrl: logoConfig.url 
+                  },
+                  services: shopCatalog.map(s => ({ 
+                      ...s, 
+                      features: Array.isArray(s.features) ? s.features : s.features.split('\n').map(f => f.trim()).filter(Boolean) 
+                  })),
+                  paymentMethods, 
+                  socials, 
+                  metaTags
+              };
+          }, [slideSpeed, whatsappPhone, logoConfig, shopCatalog, paymentMethods, socials, metaTags]);
+
+          // === VIGILANTE DE CAMBIOS: Detecta de forma inteligente si la configuración o películas han cambiado ===
           useEffect(() => {
-            // Cargar token guardado en el navegador del administrador
-            const savedToken = localStorage.getItem("fsnflix_github_token");
-            if (savedToken) {
-                setGitHubToken(savedToken);
-                verifyGitHubAccess(savedToken);
-            }
+              if (initialMoviesString) {
+                  setHasUnsavedMovies(JSON.stringify(movies) !== initialMoviesString);
+              }
+          }, [movies, initialMoviesString]);
 
-            const fetchAllDataFromGithub = async () => {
-              const timestamp = new Date().getTime();
+          useEffect(() => {
+              if (initialConfigString) {
+                  setHasUnsavedConfig(JSON.stringify(getCurrentConfigObj()) !== initialConfigString);
+              }
+          }, [getCurrentConfigObj, initialConfigString]);
+
+          // === CARGA DESDE GITHUB (INICIALIZACIÓN DEL ESPEJO DE MEMORIA) ===
+          useEffect(() => {
+            const savedToken = localStorage.getItem("fsnflix_github_token");
+            if (savedToken) { setGitHubToken(savedToken); verifyGitHubAccess(savedToken); }
+
+            const fetchAllData = async () => {
+              const ts = new Date().getTime();
               
               // Cargar peliculas.json
               try {
-                const resMovies = await fetch(`${GITHUB_CATALOG_URL}?t=${timestamp}`);
+                const resMovies = await fetch(`${GITHUB_CATALOG_URL}?t=${ts}`);
                 if (resMovies.ok) {
                   const data = await resMovies.json();
                   if (Array.isArray(data) && data.length > 0) {
-                    setMovies(data);
-                    setPeliculasSync("Sincronizado");
-                    setLastPeliculasTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                      setMovies(data);
+                      setInitialMoviesString(JSON.stringify(data));
                   }
+                } else {
+                    setInitialMoviesString(JSON.stringify(DEFAULT_MOVIES));
                 }
-              } catch (e) {
-                console.log("No se pudo cargar peliculas.json.");
-                setPeliculasSync("Error");
-              }
+              } catch (e) { setInitialMoviesString(JSON.stringify(DEFAULT_MOVIES)); }
 
               // Cargar tienda_config.json
               try {
-                const resStore = await fetch(`${GITHUB_STORE_URL}?t=${timestamp}`);
+                const resStore = await fetch(`${GITHUB_STORE_URL}?t=${ts}`);
+                
+                // Construimos un objeto robusto con los datos que lleguen o con valores por defecto
+                let loadedConfig = {
+                    globalSettings: { slideSpeed: 6000, whatsappPhone: "51986193615", logoType: "text", logoText: "FSNFLIX", logoUrl: "" },
+                    services: MASTER_SERVICES_DB.map(s => ({ ...s, features: Array.isArray(s.features) ? s.features : s.features.split('\n').map(f=>f.trim()).filter(Boolean) })),
+                    paymentMethods: DEFAULT_PAYMENTS,
+                    socials: DEFAULT_SOCIALS,
+                    metaTags: DEFAULT_META
+                };
+
                 if (resStore.ok) {
                   const data = await resStore.json();
-                  if (data) {
-                    if (data.globalSettings && data.globalSettings.slideSpeed) {
-                      setSlideSpeed(data.globalSettings.slideSpeed);
-                    }
-                    if (Array.isArray(data.services)) {
-                      const parsedServices = data.services.map(s => ({
-                        ...s,
-                        features: Array.isArray(s.features) ? s.features.join('\n') : s.features,
-                        status: s.status || "Disponible",
-                        badge: s.badge || ""
-                      }));
-                      setShopCatalog(parsedServices);
-                      setTiendaSync("Sincronizado");
-                      setLastTiendaTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-                    }
+                  if (data.globalSettings) loadedConfig.globalSettings = { ...loadedConfig.globalSettings, ...data.globalSettings };
+                  if (Array.isArray(data.services) && data.services.length > 0) {
+                      loadedConfig.services = data.services.map(s => ({ ...s, features: Array.isArray(s.features) ? s.features : s.features.split('\n').map(f=>f.trim()).filter(Boolean) }));
                   }
+                  if (Array.isArray(data.paymentMethods) && data.paymentMethods.length > 0) loadedConfig.paymentMethods = data.paymentMethods;
+                  if (data.socials) loadedConfig.socials = { ...loadedConfig.socials, ...data.socials };
+                  if (data.metaTags) loadedConfig.metaTags = { ...loadedConfig.metaTags, ...data.metaTags };
                 }
-              } catch (e) {
-                console.log("No se pudo cargar tienda_config.json.");
-                setTiendaSync("Error");
-              }
+
+                // Asignamos los valores limpios al estado de React
+                setSlideSpeed(loadedConfig.globalSettings.slideSpeed);
+                setWhatsappPhone(loadedConfig.globalSettings.whatsappPhone);
+                setLogoConfig({ type: loadedConfig.globalSettings.logoType, text: loadedConfig.globalSettings.logoText, url: loadedConfig.globalSettings.logoUrl });
+                setShopCatalog(loadedConfig.services.map(s => ({ ...s, features: Array.isArray(s.features) ? s.features.join('\n') : s.features })));
+                setPaymentMethods(loadedConfig.paymentMethods);
+                setSocials(loadedConfig.socials);
+                setMetaTags(loadedConfig.metaTags);
+
+                // Fijamos el espejo inicial para comparaciones futuras
+                setInitialConfigString(JSON.stringify(loadedConfig));
+
+              } catch (e) { console.log("Error Configuración Tienda"); }
             };
+            fetchAllData();
+          }, [verifyGitHubAccess]);
 
-            fetchAllDataFromGithub();
-          }, [showNotification, verifyGitHubAccess]);
-
-          // Guardar el Token en local storage cuando se escriba y validar conexión
           const handleTokenChange = (e) => {
-              const token = e.target.value;
-              setGitHubToken(token);
-              localStorage.setItem("fsnflix_github_token", token);
-
-              // Debounce inteligente para evitar llamadas excesivas al escribir la clave
+              const t = e.target.value; setGitHubToken(t); localStorage.setItem("fsnflix_github_token", t);
               if (tokenDebounceRef.current) clearTimeout(tokenDebounceRef.current);
-              tokenDebounceRef.current = setTimeout(() => {
-                  verifyGitHubAccess(token);
-              }, 800);
+              tokenDebounceRef.current = setTimeout(() => verifyGitHubAccess(t), 800);
           };
 
-          // === ESCRIBIR DIRECTAMENTE EN GITHUB CON NOTIFICACIÓN Y MODAL DE ÉXITO ===
+          // === ESCRIBIR DIRECTAMENTE EN GITHUB Y REINICIAR ESPEJO DE MEMORIA ===
           const saveFileToGitHub = async (filename, contentString) => {
               const cleanToken = gitHubToken.trim();
-              if (!cleanToken) {
-                  setTokenError(true);
-                  showNotification("¡Error! Ingresa tu Token de GitHub para guardar directamente.", "error");
-                  setTimeout(() => setTokenError(false), 3000);
-                  return;
-              }
+              if (!cleanToken) return showNotification("Ingresa tu Token de GitHub para guardar", "error");
               setIsSavingServer(true);
-              
-              if (filename === "peliculas.json") setPeliculasSync("Sincronizando");
-              else setTiendaSync("Sincronizando");
-
-              const path = filename; 
-              const getUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
-
+              const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filename}`;
               try {
-                  // 1. Obtener el SHA actual del archivo remoto usando el header de Autorización Bearer universal (Estándar recomendado)
-                  const getRes = await fetch(getUrl, {
-                      headers: {
-                          "Authorization": `Bearer ${cleanToken}`,
-                          "Accept": "application/vnd.github.v3+json"
-                      }
-                  });
-
-                  let sha = null;
-                  if (getRes.ok) {
-                      const getData = await getRes.json();
-                      sha = getData.sha;
-                  } else if (getRes.status === 401) {
-                      throw new Error("Token incorrecto o vencido (Error 401). Verifica la autenticidad de tu Token en GitHub.");
-                  } else if (getRes.status === 403) {
-                      throw new Error("Falta de permisos de escritura o cuota excedida (Error 403). Asegúrate de activar 'Read and Write' para Contents en tu Token.");
-                  } else if (getRes.status !== 404) {
-                      throw new Error("No se pudo obtener el historial del archivo en GitHub. Verifica tu Token.");
-                  }
-
-                  // 2. Formatear y convertir a Base64 compatible con UTF-8 de forma stack-overflow-safe
+                  const getRes = await fetch(url, { headers: { "Authorization": `Bearer ${cleanToken}` } });
+                  let sha = null; if (getRes.ok) { const d = await getRes.json(); sha = d.sha; }
+                  
                   const utf8Bytes = new TextEncoder().encode(contentString);
                   const base64Content = bytesToBase64(utf8Bytes);
+                  const body = { message: `Sincronización Panel: ${filename}`, content: base64Content, branch: "main" };
+                  if (sha) body.sha = sha;
 
-                  // 3. Sobreescribir el archivo en la rama principal (main)
-                  const putBody = {
-                      message: `Sincronización automatizada de ${filename} - FSNFLIX Panel`,
-                      content: base64Content,
-                      branch: "main"
-                  };
-                  if (sha) {
-                      putBody.sha = sha;
-                  }
-
-                  const putRes = await fetch(getUrl, {
-                      method: "PUT",
-                      headers: {
-                          "Authorization": `Bearer ${cleanToken}`,
-                          "Content-Type": "application/json",
-                          "Accept": "application/vnd.github.v3+json"
-                      },
-                      body: JSON.stringify(putBody)
+                  const putRes = await fetch(url, {
+                      method: "PUT", headers: { "Authorization": `Bearer ${cleanToken}`, "Content-Type": "application/json" },
+                      body: JSON.stringify(body)
                   });
-
+                  
                   if (putRes.ok) {
-                      const timestampStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      // Al guardar con éxito, actualizamos nuestro string base para que los botones detecten que "ya no hay cambios"
                       if (filename === "peliculas.json") {
-                          setPeliculasSync("Sincronizado");
-                          setLastPeliculasTime(timestampStr);
+                          setInitialMoviesString(JSON.stringify(movies));
                       } else {
-                          setTiendaSync("Sincronizado");
-                          setLastTiendaTime(timestampStr);
+                          setInitialConfigString(JSON.stringify(getCurrentConfigObj()));
                       }
-                      
-                      // Desplegar Modal flotante de Éxito de Confirmación Directa
-                      setShowSuccessModal({ filename, time: timestampStr });
-                      showNotification(`¡${filename} guardado con éxito directamente en tu GitHub!`, "success");
+                      setShowSuccessModal({ filename, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
                   } else {
-                      const errData = await putRes.json();
-                      throw new Error(errData.message || "Fallo al realizar el commit.");
+                      throw new Error("Fallo al guardar. Revisa tus permisos.");
                   }
-              } catch (error) {
-                  console.error(error);
-                  if (filename === "peliculas.json") setPeliculasSync("Error");
-                  else setTiendaSync("Error");
-                  showNotification(`Error: ${error.message}`, "error");
-              } finally {
-                  setIsSavingServer(false);
-              }
+              } catch (e) { showNotification(e.message, "error"); } finally { setIsSavingServer(false); }
           };
 
-          // Función para guardar peliculas.json en GitHub
-          const commitCatalogToGitHub = () => {
-              const content = JSON.stringify(movies, null, 2);
-              saveFileToGitHub("peliculas.json", content);
-          };
-
-          // Función para guardar tienda_config.json en GitHub
+          const commitCatalogToGitHub = () => saveFileToGitHub("peliculas.json", JSON.stringify(movies, null, 2));
+          
           const commitStoreToGitHub = () => {
-              const config = {
-                  globalSettings: { slideSpeed: slideSpeed },
-                  services: shopCatalog.map(s => ({
-                      ...s,
-                      features: Array.isArray(s.features) ? s.features : s.features.split('\n').map(f => f.trim()).filter(Boolean)
-                  }))
-              };
-              const content = JSON.stringify(config, null, 2);
-              saveFileToGitHub("tienda_config.json", content);
+              saveFileToGitHub("tienda_config.json", JSON.stringify(getCurrentConfigObj(), null, 2));
           };
 
+          // === ROTACIÓN DE SLIDER ===
           const nextSlide = useCallback(() => {
             if (movies.length === 0) return;
-            setIsTransitioning(true);
-            setTimeout(() => {
-              setCurrentIndex(prev => (prev === movies.length - 1 ? 0 : prev + 1));
-              setSlideProgress(0);
-              setIsTransitioning(false);
-            }, 300);
+            setCurrentIndex(prev => (prev === movies.length - 1 ? 0 : prev + 1));
+            setSlideProgress(0);
           }, [movies.length]);
 
           const prevSlide = () => {
             if (movies.length === 0) return;
-            setIsTransitioning(true);
-            setTimeout(() => {
-              setCurrentIndex(prev => (prev === 0 ? movies.length - 1 : prev - 1));
-              setSlideProgress(0);
-              setIsTransitioning(false);
-            }, 300);
-          };
-
-          // === PREVISUALIZADOR ROTATIVO CON VELOCIDAD EN TIEMPO REAL ===
-          useEffect(() => {
-            if (movies.length === 0 || viewTab !== "shop") return;
-            const updateRate = 100;
-            const step = (updateRate / slideSpeed) * 100;
-
-            progressInterval.current = setInterval(() => {
-              setSlideProgress(prev => {
-                if (prev >= 100) {
-                  nextSlide();
-                  return 0;
-                }
-                return prev + step;
-              });
-            }, updateRate);
-
-            return () => {
-              if (progressInterval.current) clearInterval(progressInterval.current);
-            };
-          }, [nextSlide, movies.length, slideSpeed, viewTab]);
-
-          const resetAutoplay = () => {
+            setCurrentIndex(prev => (prev === 0 ? movies.length - 1 : prev - 1));
             setSlideProgress(0);
-            if (progressInterval.current) {
-              clearInterval(progressInterval.current);
-            }
           };
+
+          const resetAutoplay = useCallback(() => {
+            setSlideProgress(0);
+            if (progressInterval.current) clearInterval(progressInterval.current);
+            const step = (100 / slideSpeed) * 100;
+            progressInterval.current = setInterval(() => {
+                setSlideProgress(prev => { if (prev >= 100) { nextSlide(); return 0; } return prev + step; });
+            }, 100);
+          }, [nextSlide, slideSpeed]);
+
+          useEffect(() => {
+            if (movies.length === 0 || (viewTab !== "shop" && viewTab !== "staged")) return;
+            resetAutoplay();
+            return () => { if (progressInterval.current) clearInterval(progressInterval.current); };
+          }, [resetAutoplay, viewTab, movies.length]);
 
           // === ESCÁNER OFICIAL TMDB MULTI-BÚSQUEDA ===
           const runSmartScanner = async () => {
@@ -486,9 +423,9 @@
                 urlTV = `https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_API_KEY}&with_watch_providers=${providerId}&watch_region=MX&sort_by=popularity.desc&language=es-MX&page=1`;
               }
 
-              if (minYear !== "Todos") {
-                urlMovie += `&primary_release_date.gte=${minYear}-01-01`;
-                urlTV += `&first_air_date.gte=${minYear}-01-01`;
+              if (minYearFilter !== "Todos") {
+                urlMovie += `&primary_release_date.gte=${minYearFilter}-01-01`;
+                urlTV += `&first_air_date.gte=${minYearFilter}-01-01`;
               }
             }
 
@@ -506,13 +443,13 @@
               const formatted = combined
                 .filter(item => item.poster_path && item.backdrop_path)
                 .filter(item => {
-                    if (minYear === "Todos") return true;
+                    if (minYearFilter === "Todos") return true;
                     const release = item.release_date || item.first_air_date || "2000";
-                    return parseInt(release.split("-")[0]) >= parseInt(minYear);
+                    return parseInt(release.split("-")[0]) >= parseInt(minYearFilter);
                 })
                 .slice(0, 15)
                 .map(item => {
-                    const release = item.release_date || item.first_air_date || "2026";
+                    const release = item.release_date || item.first_air_date || `${currentYear}`;
                     const genres = item.genre_ids ? item.genre_ids.map(id => TMDB_GENRES[id]).filter(Boolean) : ["Estreno"];
                     return {
                         id: `tmdb-${item.id}-${item.media_type}`,
@@ -522,7 +459,7 @@
                         overview: item.overview || "Sin sinopsis disponible en español.",
                         rating: parseFloat(item.vote_average?.toFixed(1)) || 8.0,
                         releaseYear: release.split("-")[0],
-                        duration: item.media_type === "tv" ? "Nueva Temporada" : "2h 10m",
+                        duration: item.media_type === "tv" ? "Nueva Temp" : "2h 10m",
                         genres: genres.length > 0 ? genres : ["Entretenimiento"],
                         backdropUrl: `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`,
                         posterUrl: `https://image.tmdb.org/t/p/w500${item.poster_path}`
@@ -531,9 +468,9 @@
 
               setScannedCatalog(formatted);
               if (formatted.length > 0) {
-                showNotification(`Se escanearon ${formatted.length} títulos de ${targetPlatform}`, "success");
+                showNotification(`Se escanearon ${formatted.length} títulos.`, "success");
               } else {
-                showNotification("No se encontraron estrenos para el criterio.", "error");
+                showNotification("No se encontraron estrenos para los filtros aplicados.", "error");
               }
             } catch (err) {
               console.error(err);
@@ -562,11 +499,16 @@
             showNotification(`¡${cleanAdd.length} títulos añadidos al Slider!`, "success");
           };
 
+          const toggleScannedSelection = (id) => {
+            setSelectedScannedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+          };
+
           const deleteMovieFromSlider = (id, e) => {
-            e.stopPropagation();
-            if (movies.length <= 1) return showNotification("Debe haber al menos 1 película activa.", "error");
-            setMovies(prev => prev.filter(m => m.id !== id));
-            setCurrentIndex(0); setSlideProgress(0);
+            if (e) e.stopPropagation();
+            if (movies.length <= 1) return showNotification("El slider requiere un mínimo de 1 película.", "error");
+            setMovies(prev => prev.filter(m => m.id !== id)); 
+            setCurrentIndex(0); 
+            resetAutoplay();
             showNotification("Película eliminada.", "success");
           };
 
@@ -579,352 +521,294 @@
             updated[targetIndex] = temp;
             setMovies(updated);
             setCurrentIndex(0);
-            showNotification("Orden de reproducción actualizado.", "success");
           };
 
           // === GESTIÓN DE TIENDA ===
           const handleQuickAddService = (serviceObj) => {
-              if (shopCatalog.some(s => s.id === serviceObj.id)) {
-                  showNotification(`La plataforma ${serviceObj.name} ya está activa.`, "error");
-                  return;
-              }
+              if (shopCatalog.some(s => s.id === serviceObj.id)) return showNotification("Esta plataforma ya está activa.", "error");
               setShopCatalog(prev => [...prev, serviceObj]);
               setShowPlatformSelector(false);
-              showNotification(`¡${serviceObj.name} añadido al catálogo de ventas!`, "success");
+              showNotification(`¡${serviceObj.name} añadido al catálogo!`, "success");
           };
 
           const openCustomServiceModal = () => {
               setShowPlatformSelector(false);
-              setEditingStoreService({ id: `srv-${Date.now()}`, name: 'Suscripción Libre', color: '#dc2626', plan: 'Plan Personalizado', price: '19.90', logoUrl: '', features: 'Acceso Premium Completo\nSoporte Garantizado 24/7\nSin Caídas ni Bloqueos', btnText: '#ffffff', status: 'Disponible', badge: '' });
+              setEditingStoreService({ id: `srv-${Date.now()}`, name: 'Suscripción Libre', color: '#dc2626', plan: 'Plan Personalizado', price: '19.90', logoUrl: '', features: 'Acceso Premium Completo\nSoporte Garantizado 24/7', btnText: '#ffffff', status: 'Disponible', badge: '' });
           };
 
           const saveStoreService = () => {
-              if(!editingStoreService.name || !editingStoreService.price) return showNotification("Los campos Nombre y Precio son obligatorios", "error");
+              if(!editingStoreService.name || !editingStoreService.price) return showNotification("Nombre y Precio obligatorios", "error");
               setShopCatalog(prev => {
                   const exists = prev.findIndex(s => s.id === editingStoreService.id);
-                  if (exists >= 0) {
-                      const newArr = [...prev];
-                      newArr[exists] = editingStoreService;
-                      return newArr;
-                  }
+                  if (exists >= 0) { const n = [...prev]; n[exists] = editingStoreService; return n; }
                   return [...prev, editingStoreService];
               });
-              setEditingStoreService(null);
-              showNotification("Suscripción comercial almacenada", "success");
+              setEditingStoreService(null); 
+              showNotification("Suscripción guardada", "success");
           };
 
-          const deleteStoreService = (id, e) => {
-              if (e) e.stopPropagation(); 
-              if(confirm("¿Seguro que deseas eliminar esta plataforma de la tienda?")) {
-                  setShopCatalog(prev => prev.filter(s => s.id !== id));
-                  showNotification("Plataforma eliminada de la tienda", "success");
-              }
+          const deleteStoreService = (id) => {
+              // Borrado instantáneo (SIN confirm) para evitar bloqueos del navegador en iframes
+              setShopCatalog(prev => prev.filter(s => s.id !== id));
+              showNotification("Plataforma eliminada de la tienda", "success");
+          };
+
+          // === GESTIÓN DE MÉTODOS DE PAGO ===
+          const handleAddPaymentMethod = () => {
+              const newId = `pay-${Date.now()}`;
+              const newMethod = { id: newId, name: 'Nuevo Banco', logo: '', qrs: ['', ''], instructions: 'Instrucciones de depósito aquí.' };
+              
+              // Se inserta al inicio de la lista para que no tenga que hacer scroll hasta abajo
+              setPaymentMethods(prev => [newMethod, ...prev]);
+              showNotification("Nuevo método de pago agregado.", "success");
+              
+              // Animación de destello al nuevo elemento
+              setTimeout(() => {
+                  const el = document.getElementById(newId);
+                  if (el) { 
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+                      el.classList.add('ring-2', 'ring-red-500'); 
+                      setTimeout(() => el.classList.remove('ring-2', 'ring-red-500'), 2000); 
+                  }
+              }, 150);
+          };
+
+          const handleDeletePaymentMethod = (id, e) => {
+              if (e) e.stopPropagation();
+              // Borrado instantáneo (SIN confirm) para evitar bloqueos del navegador en iframes
+              setPaymentMethods(prev => prev.filter(p => p.id !== id));
+              showNotification("Método de pago eliminado.", "success");
+          };
+
+          const handlePaymentMethodChange = (index, field, value) => {
+              setPaymentMethods(prev => { const updated = [...prev]; updated[index] = { ...updated[index], [field]: value }; return updated; });
+          };
+
+          const handleQrUrlChange = (methodIndex, qrIndex, value) => {
+              setPaymentMethods(prev => { const updated = [...prev]; const qrsUpdated = [...updated[methodIndex].qrs]; qrsUpdated[qrIndex] = value; updated[methodIndex] = { ...updated[methodIndex], qrs: qrsUpdated }; return updated; });
           };
 
           const handleImportJson = (e) => {
             try {
-              const rawText = e.target.value;
-              const parsed = JSON.parse(rawText);
-              if (Array.isArray(parsed)) {
-                setMovies(parsed);
-                setCurrentIndex(0);
-                setSlideProgress(0);
-                showNotification("JSON importado con éxito.", "success");
+              const rawText = e.target.value; const parsed = JSON.parse(rawText);
+              if (Array.isArray(parsed)) { 
+                  setMovies(parsed); 
+                  setCurrentIndex(0); 
+                  setSlideProgress(0); 
+                  showNotification("JSON importado.", "success"); 
               }
-            } catch (err) {
-              // Ignorar
-            }
+            } catch (err) {}
           };
 
-          const currentMovie = movies[currentIndex] || DEFAULT_MOVIES[0];
-          const activeTheme = PLATFORM_THEMES[currentMovie?.platform] || { brandColor: "from-neutral-600 to-neutral-800", accentBg: "bg-neutral-600", borderActive: "border-neutral-600" };
+          const copyJSONToClipboard = () => {
+            const textNode = document.createElement("textarea"); textNode.value = JSON.stringify(movies, null, 2); document.body.appendChild(textNode); textNode.select();
+            try { document.execCommand('copy'); showNotification("¡JSON copiado!", "success"); } catch (e) { showNotification("Fallo al copiar.", "error"); }
+            document.body.removeChild(textNode);
+          };
+
+          const menuItems = [
+              { id: 'shop', name: '🎪 Tienda de Cuentas' }, { id: 'staged', name: '🎬 Estrenos del Slider' }, { id: 'scan', name: '🔍 Escáner (TMDB)' },
+              { id: 'payments', name: '💳 Métodos de Pago y QRs' }, { id: 'config', name: '🌐 Configuración y SEO' }
+          ];
 
           return (
             <div className="min-h-screen bg-neutral-950 text-white font-sans pb-16 relative">
               
-              {/* MODAL DE ÉXITO DE SINCRONIZACIÓN GITHUB (CONFIRMACIÓN DIRECTA REQUERIDA) */}
+              {/* SIDEBAR DRAWER LATERAL PREMIUM */}
+              <div className={`fixed inset-y-0 left-0 w-72 bg-neutral-900 border-r border-neutral-800 z-[150] transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                  <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
+                      <span className="text-red-500 font-black text-2xl tracking-tighter">FSN CONTROL</span>
+                      <button onClick={() => setIsSidebarOpen(false)} className="text-neutral-400 hover:text-white font-bold text-xl">✕</button>
+                  </div>
+                  <nav className="p-4 space-y-2">
+                      {menuItems.map(item => (
+                          <button key={item.id} onClick={() => { setViewTab(item.id); setIsSidebarOpen(false); }}
+                              className={`w-full py-4 px-5 rounded-xl text-xs font-black uppercase text-left transition-all ${viewTab === item.id ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-neutral-850'}`}>
+                              {item.name}
+                          </button>
+                      ))}
+                  </nav>
+              </div>
+              {isSidebarOpen && <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[145]" />}
+
+              {/* MODAL GIGANTE NOTIFICACIÓN EMERGENTE AL GUARDAR */}
               {showSuccessModal && (
                   <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[210] flex items-center justify-center p-4 animate-fade-in">
-                      <div className="bg-[#111] border border-emerald-500/30 rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-[0_20px_50px_rgba(16,185,129,0.15)] relative">
-                          <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center mx-auto text-3xl">
-                              🎉
+                      <div className="bg-[#111] border border-emerald-500/30 rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-[0_20px_50px_rgba(16,185,129,0.15)] relative">
+                          <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center mx-auto text-4xl mb-6">
+                              <svg className="w-10 h-10 text-emerald-500 animate-[pulse_2s_ease-in-out_infinite]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
                           </div>
-                          <div className="space-y-2">
-                              <h3 className="text-xl font-black uppercase tracking-wider text-emerald-400">Sincronización Exitosa</h3>
-                              <p className="text-sm text-neutral-200">
-                                  El archivo <span className="font-mono text-emerald-300 font-bold bg-neutral-900 px-1.5 py-0.5 rounded">{showSuccessModal.filename}</span> se ha sobreescrito y guardado correctamente en tu repositorio de GitHub.
-                              </p>
-                              <p className="text-xs text-neutral-400">
-                                  Los cambios se reflejarán automáticamente en vivo en FSNFLIX a las {showSuccessModal.time}.
-                              </p>
-                          </div>
-                          <button 
-                              onClick={() => setShowSuccessModal(null)}
-                              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
-                          >
-                              ¡Entendido, excelente!
+                          <h3 className="text-2xl font-black uppercase tracking-wider text-emerald-400">¡Guardado Exitoso!</h3>
+                          <p className="text-sm text-neutral-300">
+                              Los cambios en <b className="text-white px-2 py-1 bg-neutral-800 rounded-md font-mono text-xs">{showSuccessModal.filename}</b> se han sincronizado con la nube.
+                          </p>
+                          <p className="text-xs text-neutral-500 pb-2">
+                              La web ha sido actualizada a las {showSuccessModal.time}.
+                          </p>
+                          <button onClick={() => setShowSuccessModal(null)} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95">
+                              Continuar Editando
                           </button>
                       </div>
                   </div>
               )}
 
-              {/* Pantalla de carga para guardar directamente en GitHub */}
               {isSavingServer && (
                 <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[200] flex flex-col items-center justify-center gap-4 transition-all duration-300">
                   <div className="relative flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full border-t-4 border-red-655 border-r-4 border-r-transparent animate-spin" />
-                    <span className="absolute text-xs font-black text-red-500">FSN</span>
+                    <div className="w-16 h-16 rounded-full border-t-4 border-emerald-500 border-r-4 border-r-transparent animate-spin" />
+                    <span className="absolute text-xs font-black text-emerald-400">FSN</span>
                   </div>
                   <div className="text-center space-y-1">
-                    <h3 className="text-lg font-black uppercase tracking-widest text-white animate-pulse">Escribiendo commit en GitHub...</h3>
-                    <p className="text-xs text-neutral-400">Actualizando tus archivos .json directamente en tu rama principal.</p>
+                    <h3 className="text-lg font-black uppercase tracking-widest text-white animate-pulse">Sincronizando con GitHub...</h3>
+                    <p className="text-xs text-neutral-400">Aplicando todos tus cambios en vivo de forma segura.</p>
                   </div>
                 </div>
               )}
 
               {notification && (
-                <div className="fixed top-6 right-6 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl bg-neutral-900 border border-neutral-850 shadow-2xl animate-fade-in">
-                  <span className={`w-2.5 h-2.5 rounded-full ${notification.type === 'error' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                  <p className="text-xs font-black uppercase tracking-wider text-white">{notification.message}</p>
+                <div className="fixed top-6 right-6 z-[100] bg-neutral-900 border border-neutral-800 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-fade-in">
+                  <span className={`w-2.5 h-2.5 rounded-full ${notification.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                  <p className="text-xs font-black uppercase text-white tracking-wider">{notification.message}</p>
                 </div>
               )}
 
-              {/* NAVEGACIÓN SUPERIOR FIJA DEL COMMAND CENTER */}
-              <header className="fixed top-0 left-0 w-full z-[140] bg-black/90 backdrop-blur-md px-6 py-4 md:px-12 flex flex-col sm:flex-row justify-between items-center border-b border-white/5 gap-4">
-                <div className="flex items-center gap-8">
-                  <span className="text-red-655 font-black text-3xl tracking-tighter">FSNFLIX<span className="text-white text-base font-medium opacity-40 ml-2">CONTROL</span></span>
-                  <div className="flex bg-neutral-900 p-1 rounded-xl border border-neutral-800">
-                    <button onClick={() => setViewTab('shop')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'shop' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🎪 Tienda de Cuentas</button>
-                    <button onClick={() => setViewTab('staged')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'staged' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🎬 Estrenos del Slider ({movies.length})</button>
-                    <button onClick={() => setViewTab('scan')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewTab === 'scan' ? 'bg-red-655 text-white shadow-lg' : 'text-neutral-500 hover:text-white'}`}>🔍 Escáner (TMDB)</button>
-                  </div>
+              {/* HEADER NAVBAR CON BOTONES DE GUARDADO INTELIGENTES (INDICADOR DE ESTADO SUCIO) */}
+              <header className="fixed top-0 left-0 w-full z-[140] bg-black/90 backdrop-blur-md px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b border-neutral-800 gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <button onClick={() => setIsSidebarOpen(true)} className="bg-neutral-900 hover:bg-neutral-800 p-2.5 rounded-xl border border-neutral-800 transition-colors active:scale-95">
+                      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                  </button>
+                  <span className="text-red-655 font-black text-2xl md:text-3xl tracking-tighter">FSNFLIX<span className="text-neutral-500 text-base ml-2">ADMIN</span></span>
                 </div>
 
-                {/* LLAVE DE ACCESO DIRECTO A GITHUB (TOKEN PAT CON SOPORTE COMPLETO DE AUTORIZACIÓN PARA EL NUEVO GITHUB) */}
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                    {/* Input de contraseña/token con puntito indicador integrado en el contenedor */}
-                    <div className="relative flex items-center w-full sm:w-64">
-                        <input 
-                            type="password" 
-                            value={gitHubToken}
-                            onChange={handleTokenChange}
-                            placeholder="Contraseña / Token GitHub..."
-                            className={`bg-neutral-900 border px-4 py-2.5 pr-8 rounded-xl text-xs outline-none font-mono w-full placeholder-neutral-600 transition-colors ${
-                              tokenError ? 'border-red-500 ring-2 ring-red-500/20 text-red-500 animate-pulse' : 'border-neutral-800 text-emerald-400 focus:border-emerald-500'
-                            }`}
-                            title="Tu GitHub Token de escritura personal. Se almacena localmente en tu navegador."
-                        />
-                        {/* El puntito indicador de contacto en vivo solicitado */}
-                        <div className="absolute right-3 flex items-center justify-center">
-                            {connectionStatus === "checking" && (
-                                <span className="flex h-2.5 w-2.5 relative">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500" title="Verificando acceso con GitHub..." />
-                                </span>
-                            )}
-                            {connectionStatus === "connected" && (
-                                <span className="flex h-2.5 w-2.5 relative">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" title="¡Conectado exitosamente con FusionFlix/Streaming!" />
-                                </span>
-                            )}
-                            {connectionStatus === "error" && (
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" title="Error de autenticación o repositorio inaccesible" />
-                            )}
-                            {connectionStatus === "disconnected" && (
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neutral-600" title="Token no ingresado" />
-                            )}
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+                    <div className="relative w-full sm:w-64">
+                        <input type="password" value={gitHubToken} onChange={handleTokenChange} placeholder="Token GitHub..." className="bg-neutral-900 border border-neutral-800 px-4 py-2.5 pr-8 rounded-xl text-xs w-full text-emerald-400 outline-none" />
+                        <div className="absolute right-3 top-3">
+                            {connectionStatus === "connected" && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>}
+                            {connectionStatus === "checking" && <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse"></div>}
+                            {(connectionStatus === "disconnected" || connectionStatus === "error") && <div className="w-2.5 h-2.5 rounded-full bg-neutral-600"></div>}
                         </div>
                     </div>
                     
-                    <div className="h-6 w-px bg-neutral-800 hidden sm:block" />
-                    
+                    {/* BOTÓN INTELIGENTE: PELICULAS */}
                     <button 
                         onClick={commitCatalogToGitHub} 
                         disabled={isSavingServer}
-                        className="px-3.5 py-2.5 bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-[10px] font-black uppercase tracking-widest text-neutral-300 hover:text-white flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
+                        className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 active:scale-95 ${
+                            hasUnsavedMovies
+                                ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] border border-emerald-500 hover:bg-emerald-500'
+                                : 'bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
+                        }`}
                     >
-                        {peliculasSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar peliculas.json"}
+                        {hasUnsavedMovies ? "⚠️ Guardar Estrenos" : "✓ Peliculas.json"}
                     </button>
                     
+                    {/* BOTÓN INTELIGENTE: TIENDA & CONFIG */}
                     <button 
                         onClick={commitStoreToGitHub} 
                         disabled={isSavingServer}
-                        className="px-3.5 py-2.5 bg-red-655 hover:bg-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-600/10 flex items-center gap-1.5 active:scale-95 disabled:opacity-40"
+                        className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 active:scale-95 ${
+                            hasUnsavedConfig
+                                ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] border border-emerald-500 hover:bg-emerald-500'
+                                : 'bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
+                        }`}
                     >
-                        {tiendaSync === "Sincronizando" ? "⏳ Guardando..." : "✓ Guardar tienda_config.json"}
+                        {hasUnsavedConfig ? "⚠️ Guardar Config" : "✓ Tienda_config.json"}
                     </button>
                 </div>
               </header>
 
-              {/* LIVE SIMULATOR SLIDER RESTABLECIDO EN PESTAÑA PRINCIPAL */}
-              {viewTab === "shop" && (
-                <section className="relative w-full h-[55vh] min-h-[450px] flex items-end overflow-hidden bg-black select-none mt-[80px]">
-                  {movies.map((movie, index) => (
-                    <div key={movie.id} className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
-                      <img src={movie.backdropUrl} alt={movie.title} referrerPolicy="no-referrer" className="w-full h-full object-cover object-center transform transition-transform duration-[8000ms]" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-transparent to-transparent" />
-                    </div>
-                  ))}
-                  
-                  {movies.length > 0 && (
-                    <div className="absolute bottom-12 right-6 md:right-12 z-35 pointer-events-none hidden sm:block">
-                      <PlatformLogo platform={currentMovie?.platform} sizeClass="h-10 md:h-14" shopCatalog={shopCatalog} />
-                    </div>
-                  )}
-
-                  {movies.length > 0 && (
-                    <div className="relative z-20 w-full max-w-7xl mx-auto px-6 md:px-12 pb-12 pt-28">
-                      <div className="max-w-2xl space-y-3.5 text-left">
-                        <div className="flex items-center gap-2 text-xs font-bold">
-                          <span className="bg-red-650/90 text-white px-3 py-1 rounded text-[10px] uppercase font-black">{currentMovie?.type}</span>
-                          <span className="text-yellow-500">★ {currentMovie?.rating}</span>
-                          <span className="text-neutral-400">• {currentMovie?.releaseYear}</span>
+              {/* SIMULADOR SLIDER (Visible en Shop y Staged) */}
+              {(viewTab === "shop" || viewTab === "staged") && (
+                <div className="mt-[80px]">
+                    <section className="relative w-full h-[50vh] min-h-[400px] flex items-end overflow-hidden bg-black select-none">
+                      {movies.map((movie, index) => (
+                        <div key={movie.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                          <img src={movie.backdropUrl} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-black/95 to-transparent" />
                         </div>
-                        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight leading-none text-white text-shadow-cinematic">{currentMovie?.title}</h1>
-                        <p className="text-xs sm:text-sm md:text-base text-neutral-200 line-clamp-2 leading-relaxed max-w-xl text-shadow-cinematic">{currentMovie?.overview}</p>
+                      ))}
+                      
+                      <div className="relative z-20 w-full max-w-7xl mx-auto px-6 md:px-12 pb-10 pt-20">
+                        <div className="max-w-2xl space-y-3">
+                          <PlatformLogo platform={currentMovie?.platform} sizeClass="h-8 mb-2" />
+                          <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight leading-none">{currentMovie?.title}</h1>
+                        </div>
+                      </div>
+                    </section>
+
+                    <div className="bg-neutral-900 py-3 px-6 md:px-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-neutral-800">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-neutral-400">Velocidad: {slideSpeed/1000}s</span>
+                        <input type="range" min="1000" max="8000" step="500" value={slideSpeed} onChange={e => { setSlideSpeed(Number(e.target.value)); resetAutoplay(); }} className="w-32 accent-red-600 cursor-pointer" />
+                      </div>
+                      <div className="flex-1 max-w-sm flex flex-col gap-1.5">
+                        <div className="h-1 bg-neutral-950 rounded-full overflow-hidden"><div className="h-full bg-red-600 transition-all ease-linear" style={{ width: `${slideProgress}%` }} /></div>
+                        <div className="flex justify-end gap-1.5">
+                          {movies.map((_, idx) => <button key={idx} onClick={() => { setCurrentIndex(idx); resetAutoplay(); }} className={`h-2 rounded-full transition-all ${idx === currentIndex ? 'bg-red-600 w-6' : 'bg-neutral-700 w-2'}`} />)}
+                        </div>
                       </div>
                     </div>
-                  )}
-                </section>
-              )}
-
-              {/* CONTROL DE VELOCIDAD DEL SLIDER RESTABLECIDO JUSTO DEBAJO EN TIEMPO REAL */}
-              {viewTab === "shop" && (
-                <div className="bg-neutral-900 border-b border-neutral-800 py-4 px-6 md:px-12 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
-                    <span className="text-xs font-black uppercase tracking-widest text-neutral-400">Velocidad: <span className="text-red-500 ml-1">{slideSpeed/1000} Segundos</span></span>
-                    <input type="range" min="1000" max="10000" step="1000" value={slideSpeed} onChange={e => { setSlideSpeed(Number(e.target.value)); resetAutoplay(); }} className="w-48 md:w-64 h-1.5 bg-neutral-955 rounded-lg appearance-none cursor-pointer accent-red-655" />
-                  </div>
-                  <div className="w-full md:flex-1 md:ml-12 flex flex-col gap-1.5">
-                    <div className="w-full h-[3.5px] bg-neutral-950 rounded-full overflow-hidden">
-                      <div className={`h-full transition-all ease-linear ${activeTheme?.accentBg || 'bg-red-600'}`} style={{ width: `${slideProgress}%` }} />
-                    </div>
-                    <div className="flex justify-end gap-1.5">
-                      {movies.map((_, idx) => (
-                        <button key={idx} onClick={() => { setCurrentIndex(idx); resetAutoplay(); }} className={`h-2  rounded-full transition-all duration-300 ${idx === currentIndex ? `${activeTheme?.accentBg || 'bg-red-655'} w-6` : 'bg-neutral-800 w-2 hover:bg-neutral-600'}`} />
-                      ))}
-                    </div>
-                  </div>
                 </div>
               )}
 
-              {/* RENDERIZACIÓN DE CONTENIDOS DE ADMIN */}
-              <main className="max-w-7xl mx-auto px-6 py-10 mt-[80px]">
-
-                {/* VISTA 1: TIENDA OFICIAL DE SUSCRIPCIONES */}
+              {/* RENDERIZACIÓN DE PESTAÑAS */}
+              <main className={`max-w-7xl mx-auto px-6 py-10 ${(viewTab === 'payments' || viewTab === 'config' || viewTab === 'scan') ? 'mt-[100px]' : ''}`}>
+                
+                {/* 🎪 TIENDA DE CUENTAS */}
                 {viewTab === 'shop' && (
-                  <div className="space-y-8 animate-fade-in">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-neutral-900 pb-6">
-                      <div>
-                        <h2 className="text-3xl font-black uppercase tracking-tight">Cuentas y Plataformas</h2>
-                        <p className="text-neutral-500 text-xs mt-1">Administra tus perfiles comerciales. Puedes marcar stock de disponibilidad y etiquetas promocionales.</p>
-                      </div>
-                      <button onClick={() => setShowPlatformSelector(true)} className="px-5 py-3 bg-red-650 hover:bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg">+ Añadir Plataforma de Reventa</button>
+                  <div className="space-y-6 animate-fade-in">
+                    <div className="flex justify-between items-end border-b border-neutral-900 pb-4">
+                      <h2 className="text-2xl font-black uppercase">Plataformas de Venta</h2>
+                      <button onClick={() => setShowPlatformSelector(true)} className="px-4 py-2 bg-red-655 text-white rounded-lg text-xs font-bold shadow-lg active:scale-95">+ Añadir</button>
                     </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {shopCatalog.map(service => {
-                        const featuresList = getFeaturesList(service.features);
-                        const isAgotado = service.status === "Agotado";
-                        
-                        return (
-                          <div key={service.id} className={`premium-card rounded-2xl p-6 md:p-8 flex flex-col relative overflow-hidden h-full ${isAgotado ? 'opacity-80' : ''}`} style={{ borderTopWidth: '5px', borderTopStyle: 'solid', borderTopColor: isAgotado ? '#404040' : service.color }}>
-                             
-                             {/* Botones de acción flotantes (SIEMPRE VISIBLES DE FORMA ELEGANTE Y COMPATIBLES CON MÓVIL/TÁCTIL) */}
-                             <div className="absolute top-3 right-3 flex gap-1.5 z-30">
-                               <button 
-                                 onClick={() => setEditingStoreService({ ...service, features: Array.isArray(service.features) ? service.features.join('\n') : service.features })} 
-                                 className="bg-neutral-955/90 hover:bg-blue-600 p-2.5 rounded-xl border border-white/10 text-white transition-all shadow-md active:scale-95"
-                                 title="Editar plataforma"
-                               >
-                                 ✏️
-                               </button>
-                               <button 
-                                 onClick={(e) => deleteStoreService(service.id, e)} 
-                                 className="bg-neutral-955/90 hover:bg-red-655 p-2.5 rounded-xl border border-white/10 text-white transition-all shadow-md active:scale-95"
-                                 title="Eliminar plataforma"
-                               >
-                                 🗑️
-                               </button>
+                      {shopCatalog.map(service => (
+                        <div key={service.id} className="bg-neutral-900/30 rounded-2xl p-6 relative border border-neutral-800" style={{ borderTopWidth: '4px', borderTopColor: service.color }}>
+                             <div className="absolute top-3 right-3 flex gap-1 z-30">
+                               <button onClick={() => setEditingStoreService({...service})} className="bg-black/80 hover:bg-neutral-800 p-2 rounded-lg text-white transition-colors">✏️</button>
+                               <button onClick={() => deleteStoreService(service.id)} className="bg-black/80 hover:bg-red-950 p-2 rounded-lg text-red-500 transition-colors">🗑️</button>
                              </div>
-
-                             {/* Sincronización de insignias promocionales y de stock */}
-                             {service.badge && !isAgotado && (
-                               <div className={`absolute top-4 left-4 z-20 text-[9px] font-black uppercase px-2.5 py-1.5 rounded-md tracking-wider shadow-md ${
-                                 service.badge.toUpperCase() === "OFERTA" ? "bg-gradient-to-r from-red-655 to-orange-500 text-white animate-pulse" :
-                                 service.badge.toUpperCase() === "RECOMENDADO" ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white" :
-                                 "bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
-                               }`}>
-                                 {service.badge}
-                               </div>
-                             )}
-
-                             {isAgotado && (
-                               <div className="absolute top-4 left-4 z-20 text-[9px] font-black uppercase px-2.5 py-1.5 rounded-md tracking-wider shadow-md bg-neutral-800 border border-neutral-700 text-neutral-400">
-                                 SIN STOCK
-                               </div>
-                             )}
-
-                             <div className="h-10 mb-5 flex items-center justify-start brand-logo-container mt-8 sm:mt-10">
-                               {service.logoUrl ? <img src={service.logoUrl} className="max-h-[35px] max-w-[140px] object-contain" alt={service.name} /> : <span className="font-black text-xl uppercase" style={{ color: service.color }}>{service.name}</span>}
-                             </div>
-
-                             <div className="text-[10px] uppercase font-bold tracking-widest mb-0.5 text-neutral-500">{service.plan}</div>
-                             <div className="flex items-baseline gap-1 mb-6">
-                               <span className="text-sm font-bold text-neutral-500">S/</span>
-                               <span className="text-3xl font-black text-white">{service.price}</span>
-                             </div>
-
-                             <ul className="space-y-3 flex-grow mb-6">
-                               {featuresList.map((feat, i) => (
-                                 <li key={i} className="text-xs font-medium text-neutral-400 flex items-start gap-2">
-                                   <span style={{ color: isAgotado ? '#606060' : service.color }}>•</span> <span>{feat}</span>
-                                 </li>
-                               ))}
+                             <PlatformLogo platform={service.name} sizeClass="h-8 mb-4" shopCatalog={shopCatalog} />
+                             <div className="text-[10px] uppercase font-bold text-neutral-500">{service.plan}</div>
+                             <div className="text-3xl font-black text-white mb-4">S/{service.price}</div>
+                             <ul className="text-xs text-neutral-400 space-y-2 mb-4">
+                               {getFeaturesList(service.features).slice(0,3).map((f, i) => <li key={i}>• {f}</li>)}
                              </ul>
-
-                             <div className="w-full py-3 rounded-xl text-center font-black text-[10px] uppercase tracking-widest opacity-40 cursor-not-allowed" style={{ backgroundColor: isAgotado ? '#2e2e33' : service.color, color: isAgotado ? '#8a8a93' : (service.btnText || '#ffffff'), border: isAgotado ? '1px solid #43434d' : 'none' }}>
-                               {isAgotado ? "Consultar Stock ⚡" : "Adquirir Cuenta"}
-                             </div>
-                          </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {/* VISTA 2: ESTRENOS DEL SLIDER (ORDENACIÓN Y ELIMINACIÓN DE PELICULAS.JSON) */}
+                {/* 🎬 ESTRENOS DEL SLIDER */}
                 {viewTab === 'staged' && (
-                  <div className="space-y-8 animate-fade-in">
-                    <div className="border-b border-neutral-900 pb-6 flex justify-between items-end">
-                      <div>
-                        <h2 className="text-3xl font-black uppercase tracking-tight">Estrenos del Slider</h2>
-                        <p className="text-neutral-500 text-xs mt-1">Reordena mediante las flechas de ordenación o depura tu base de datos de películas.</p>
-                      </div>
-                      <button onClick={() => setShowJsonEditor(!showJsonEditor)} className="px-4 py-2 bg-neutral-900 border border-neutral-800 text-xs rounded-xl font-bold">{showJsonEditor ? "Ocultar Editor" : "Ver Editor JSON"}</button>
+                  <div className="space-y-6 animate-fade-in">
+                    <div className="flex justify-between items-end border-b border-neutral-900 pb-4">
+                        <h2 className="text-2xl font-black uppercase">Estrenos Activos</h2>
+                        <button onClick={() => setShowJsonEditor(!showJsonEditor)} className="px-4 py-2 bg-neutral-900 border border-neutral-800 text-xs rounded-xl font-bold">{showJsonEditor ? "Ocultar Editor" : "Ver JSON"}</button>
                     </div>
-
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                      {movies.map((movie, index) => {
-                        return (
-                          <div key={movie.id} className="bg-neutral-900/30 rounded-2xl overflow-hidden border border-neutral-900 hover:border-neutral-800 transition-all flex flex-col justify-between">
-                            <div className="relative aspect-[2/3] overflow-hidden bg-neutral-950">
-                              <img src={movie.posterUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                              <div className="absolute top-2 left-2 bg-black/80 px-2 py-1 rounded text-[8px] font-black uppercase border border-white/5">{movie.platform}</div>
-                              <button onClick={(e) => deleteMovieFromSlider(movie.id, e)} className="absolute top-2 right-2 bg-red-655 hover:bg-red-700 p-1.5 rounded-lg border border-red-500 transition-colors z-20"><svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                            </div>
-                            <div className="p-3 bg-neutral-950 space-y-3">
-                              <h4 className="font-bold text-xs truncate text-white leading-none">{movie.title}</h4>
-                              <div className="flex gap-1">
-                                <button disabled={index === 0} onClick={() => moveMovieOrder(index, 'up')} className="flex-1 py-1 bg-neutral-900 hover:bg-neutral-850 text-[10px] font-bold rounded border border-neutral-800 disabled:opacity-30">▲</button>
-                                <button disabled={index === movies.length - 1} onClick={() => moveMovieOrder(index, 'down')} className="flex-1 py-1 bg-neutral-900 hover:bg-neutral-855 text-[10px] font-bold rounded border border-neutral-800 disabled:opacity-30">▼</button>
-                              </div>
+                      {movies.map((movie, index) => (
+                        <div key={movie.id} className="bg-neutral-900/40 rounded-2xl overflow-hidden border border-neutral-900 hover:border-neutral-800 transition-all flex flex-col justify-between">
+                          <div className="relative aspect-[2/3] overflow-hidden bg-neutral-950">
+                            <img src={movie.posterUrl} className="w-full h-full object-cover" />
+                            <div className="absolute top-2 left-2 bg-black/80 px-2 py-1 rounded text-[8px] font-black uppercase border border-white/5">{movie.platform}</div>
+                            <button onClick={(e) => deleteMovieFromSlider(movie.id, e)} className="absolute top-2 right-2 bg-red-600 p-1.5 rounded-lg active:scale-90">✕</button>
+                          </div>
+                          <div className="p-3 bg-neutral-950 space-y-3">
+                            <h4 className="font-bold text-xs truncate text-white leading-none">{movie.title}</h4>
+                            <div className="flex gap-1">
+                              <button disabled={index === 0} onClick={() => moveMovieOrder(index, 'up')} className="flex-1 py-1 bg-neutral-900 hover:bg-neutral-850 text-[10px] font-bold rounded border border-neutral-800 disabled:opacity-30">▲</button>
+                              <button disabled={index === movies.length - 1} onClick={() => moveMovieOrder(index, 'down')} className="flex-1 py-1 bg-neutral-900 hover:bg-neutral-855 text-[10px] font-bold rounded border border-neutral-800 disabled:opacity-30">▼</button>
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </div>
 
                     {showJsonEditor && (
@@ -933,111 +817,235 @@
                           <h4 className="font-bold text-white text-xs uppercase tracking-widest">Base de Datos JSON de Estrenos</h4>
                           <button onClick={copyJSONToClipboard} className="px-4 py-2 bg-red-655 text-xs font-black uppercase rounded-lg">Copiar JSON</button>
                         </div>
-                        <textarea value={jsonInput} onChange={handleImportJson} rows={10} className="w-full bg-black text-emerald-400 font-mono text-xs p-4 rounded-xl border border-neutral-850 outline-none" />
+                        <textarea value={jsonInput} onChange={handleImportJson} rows={10} className="w-full bg-black text-emerald-400 font-mono text-xs p-4 rounded-xl border border-neutral-855 outline-none focus:border-red-600" placeholder="Pega un arreglo JSON de películas..." />
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* VISTA 3: ESCÁNER TMDB */}
+                {/* 🔍 ESCANER TMDB (GRANDES IMÁGENES Y BOTONES RESALTANTES) */}
                 {viewTab === 'scan' && (
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
                     <div className="bg-neutral-900/40 border border-neutral-900 p-6 rounded-3xl h-max space-y-5">
                       <div className="space-y-1">
-                        <h3 className="text-lg font-black uppercase tracking-wider text-white">Filtros de Escaneo</h3>
-                        <p className="text-neutral-500 text-xs">Consulta tendencias de streaming oficiales en vivo con TMDb.</p>
+                        <h3 className="text-lg font-black uppercase tracking-wider text-white">Buscador TMDb</h3>
+                        <p className="text-neutral-500 text-xs">Busca estrenos en vivo para agregar al Slider.</p>
                       </div>
-                      
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Asignar Plataforma</label>
-                        <select value={targetPlatform} onChange={e => setTargetPlatform(e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 cursor-pointer">
+                        <label className="text-[10px] font-black uppercase text-neutral-500">Asignar Plataforma</label>
+                        <select value={targetPlatform} onChange={e => setTargetPlatform(e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs outline-none focus:border-red-655">
                           {VIDEO_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </div>
-
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Año Mínimo de Estreno</label>
-                        <select value={minYear} onChange={e => setMinYear(e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 cursor-pointer">
-                          <option value="Todos">Todos los años</option>
-                          <option value="2024">Desde 2024</option>
-                          <option value="2025">Desde 2025</option>
-                          <option value="2026">2026 (Exclusivo)</option>
+                        <label className="text-[10px] font-black uppercase text-neutral-500">Año de Estreno</label>
+                        <select value={minYearFilter} onChange={e => setMinYearFilter(e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs outline-none focus:border-red-655">
+                          {dynamicYears.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
                         </select>
                       </div>
-
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Filtro por Nombre / Palabra Clave</label>
-                        <input type="text" value={customSearchQuery} onChange={e => setCustomSearchQuery(e.target.value)} placeholder="Ej: Avengers, The Boys, Anime..." className="w-full bg-neutral-950 border border-neutral-850 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-650 transition-colors" />
+                        <label className="text-[10px] font-black uppercase text-neutral-500">Palabra Clave (Opcional)</label>
+                        <input type="text" value={customSearchQuery} onChange={e => setCustomSearchQuery(e.target.value)} placeholder="Ej: Avengers" className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs outline-none focus:border-red-655" />
                       </div>
-
-                      <button onClick={runSmartScanner} disabled={isScanning} className="w-full py-4 bg-white text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-neutral-200 transition-all">{isScanning ? 'Sincronizando...' : 'Iniciar Escaneo de Estrenos'}</button>
+                      <button onClick={runSmartScanner} disabled={isScanning} className="w-full py-4 bg-white text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-neutral-200 transition-all shadow-lg active:scale-95">{isScanning ? 'Buscando...' : 'Escanear Ahora'}</button>
                     </div>
 
                     <div className="lg:col-span-2 space-y-4">
                       <div className="flex justify-between items-center">
-                        <h4 className="font-bold text-sm uppercase tracking-wider text-neutral-400">Resultados del Buscador</h4>
-                        {scannedCatalog.length > 0 && <button onClick={addSelectedMoviesInBulk} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-black uppercase transition-all">Inyectar Selección ({selectedScannedIds.length})</button>}
+                        <h4 className="font-bold text-sm uppercase text-neutral-400">Resultados de Búsqueda</h4>
+                        {scannedCatalog.length > 0 && <button onClick={addSelectedMoviesInBulk} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-black uppercase shadow-lg shadow-emerald-600/20 transition-all">Agregar Selección ({selectedScannedIds.length})</button>}
                       </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {scannedCatalog.map(movie => {
                           const isChecked = selectedScannedIds.includes(movie.id);
                           return (
-                            <div key={movie.id} className={`p-4 rounded-2xl bg-neutral-950 border flex gap-3 relative cursor-pointer ${isChecked ? 'border-emerald-500' : 'border-neutral-900'}`} onClick={() => toggleScannedSelection(movie.id)}>
-                              <input type="checkbox" checked={isChecked} onChange={(e) => { e.stopPropagation(); toggleScannedSelection(movie.id); }} className="absolute top-3 right-3 z-20 w-4 h-4 accent-emerald-500 cursor-pointer" />
-                              <img src={movie.posterUrl} referrerPolicy="no-referrer" className="w-16 h-24 rounded-lg object-cover bg-neutral-900 shrink-0 border border-neutral-800" />
-                              <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                <div>
-                                  <span className="text-[9px] font-extrabold uppercase text-neutral-500">{movie.type} • {movie.releaseYear}</span>
-                                  <h5 className="font-bold text-xs truncate text-white mt-0.5">{movie.title}</h5>
-                                </div>
-                                <div className="flex justify-between items-center pt-2">
-                                  <span className="text-[10px] text-yellow-500 font-bold">★ {movie.rating?.toFixed(1)}</span>
-                                  <button onClick={(e) => { e.stopPropagation(); addSingleMovieToSlider(movie); }} className="px-3 py-1.5 bg-neutral-900 border border-neutral-800 text-[9px] font-bold rounded text-white hover:bg-neutral-800">+ Añadir</button>
-                                </div>
+                            <div key={movie.id} className={`p-4 rounded-2xl bg-neutral-950 border relative cursor-pointer transition-all ${isChecked ? 'border-emerald-500 ring-2 ring-emerald-500' : 'border-neutral-900 hover:border-neutral-800'}`} onClick={() => toggleScannedSelection(movie.id)}>
+                              <input type="checkbox" checked={isChecked} onChange={(e) => { e.stopPropagation(); toggleScannedSelection(movie.id); }} className="absolute top-3 right-3 z-20 w-4.5 h-4.5 accent-emerald-500 cursor-pointer" />
+                              <div className="aspect-[2/3] w-full rounded-xl overflow-hidden mb-3">
+                                <img src={movie.posterUrl} className="w-full h-full object-cover" />
                               </div>
+                              <span className="text-[9px] font-extrabold uppercase text-neutral-500 block mb-1">{movie.type} • {movie.releaseYear}</span>
+                              <h5 className="font-bold text-xs truncate text-white mb-2">{movie.title}</h5>
+                              
+                              <button onClick={(e) => { e.stopPropagation(); addSingleMovieToSlider(movie); }} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-black uppercase rounded-lg text-white transition-colors shadow-lg shadow-emerald-500/20 active:scale-95">
+                                + Añadir Título
+                              </button>
                             </div>
                           );
                         })}
-                        {scannedCatalog.length === 0 && <div className="col-span-full py-16 text-center text-neutral-600 text-xs font-bold border-2 border-dashed border-neutral-900 rounded-3xl">Utiliza el buscador izquierdo para escanear y cargar estrenos.</div>}
+                        {scannedCatalog.length === 0 && <div className="col-span-full py-16 text-center text-neutral-600 text-xs font-bold border-2 border-dashed border-neutral-900 rounded-3xl">La búsqueda está vacía. Escanea películas a la izquierda.</div>}
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* 💳 MÉTODOS DE PAGO Y QRS (DIRECT DELITIONS + AUTO-SCROLL TO TOP) */}
+                {viewTab === 'payments' && (
+                  <div className="space-y-8 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-neutral-900 pb-4">
+                      <div>
+                        <h2 className="text-3xl font-black uppercase tracking-tight text-white">Métodos de Pago y Códigos QR</h2>
+                        <p className="text-neutral-500 text-xs mt-1">Sincroniza y personaliza las billeteras de cobro.</p>
+                      </div>
+                      <button onClick={handleAddPaymentMethod} className="px-5 py-3 bg-red-655 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg active:scale-95">
+                          + Agregar Método
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {paymentMethods.map((method, methodIdx) => (
+                        <div key={method.id} id={method.id} className="bg-neutral-900/40 border border-neutral-900 p-6 rounded-[2rem] space-y-5 relative transition-all duration-300">
+                          
+                          <button onClick={(e) => handleDeletePaymentMethod(method.id, e)} className="absolute top-4 right-4 bg-black/60 hover:bg-red-600 text-red-500 hover:text-white p-2.5 rounded-xl transition-all z-30">
+                              🗑️ Eliminar
+                          </button>
+
+                          <div className="border-b border-neutral-800 pb-4 pr-24">
+                            <input 
+                                type="text" value={method.name} onChange={e => handlePaymentMethodChange(methodIdx, 'name', e.target.value)}
+                                className="bg-transparent border-b border-neutral-800 focus:border-red-655 outline-none font-black uppercase text-xl text-white w-full py-1"
+                                placeholder="Nombre del Banco"
+                            />
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-neutral-500">Enlace del Logotipo (PNG/SVG)</label>
+                              <input type="text" value={method.logo} onChange={e => handlePaymentMethodChange(methodIdx, 'logo', e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl text-xs text-neutral-300 font-mono outline-none focus:border-red-655" />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-neutral-500">Instrucciones</label>
+                              <textarea value={method.instructions} onChange={e => handlePaymentMethodChange(methodIdx, 'instructions', e.target.value)} rows="2" className="w-full bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl text-xs text-neutral-300 outline-none focus:border-red-655 resize-none" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-neutral-500">Enlace Código QR 1</label>
+                                <input type="text" value={method.qrs[0] || ''} onChange={e => handleQrUrlChange(methodIdx, 0, e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl text-[10px] text-neutral-300 font-mono outline-none focus:border-red-655" />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-neutral-500">Enlace Código QR 2</label>
+                                <input type="text" value={method.qrs[1] || ''} onChange={e => handleQrUrlChange(methodIdx, 1, e.target.value)} className="w-full bg-neutral-950 border border-neutral-800 px-3 py-2 rounded-xl text-[10px] text-neutral-300 font-mono outline-none focus:border-red-655" />
+                              </div>
+                            </div>
+                            
+                            {/* PREVISUALIZADOR DE CAJAS EN VIVO */}
+                            <div className="flex gap-4 justify-start pt-4 border-t border-neutral-800/60 mt-4">
+                                <div className="text-center space-y-1.5">
+                                    <span className="text-[8px] font-black uppercase text-neutral-500 block tracking-widest">Logo Previa</span>
+                                    <div className="h-14 w-24 bg-neutral-950 rounded-xl p-2 border border-neutral-800 flex items-center justify-center overflow-hidden">
+                                        {method.logo ? <img src={method.logo} className="max-h-full max-w-full object-contain" onError={(e) => e.target.style.display='none'} /> : <span className="text-[10px] text-neutral-600 font-bold">VACÍO</span>}
+                                    </div>
+                                </div>
+                                {method.qrs.map((qr, qidx) => (
+                                    <div key={qidx} className="text-center space-y-1.5">
+                                        <span className="text-[8px] font-black uppercase text-neutral-500 block tracking-widest">QR {qidx + 1}</span>
+                                        <div className="h-14 w-14 bg-neutral-950 rounded-xl p-1 border border-neutral-800 flex items-center justify-center overflow-hidden">
+                                            {qr ? <img src={qr} className="h-full w-full object-cover rounded-md" onError={(e) => e.target.style.display='none'} /> : <span className="text-[10px] text-neutral-600 font-bold">VACÍO</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 🌐 CONFIGURACIÓN, REDES, LOGO Y SEO */}
+                {viewTab === 'config' && (
+                  <div className="space-y-8 animate-fade-in">
+                    
+                    {/* Logotipo de Navbar */}
+                    <div className="bg-neutral-900/40 border border-neutral-900 rounded-[2rem] p-6 md:p-8 space-y-6">
+                      <div>
+                        <span className="text-red-500 font-black text-xs uppercase tracking-widest block">Estética Visual</span>
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-white">Logotipo del Portal</h3>
+                        <p className="text-xs text-neutral-400">Personaliza cómo se verá el logo de la esquina superior de tu web.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-neutral-500 block">Tipo de Logotipo</label>
+                            <select value={logoConfig?.type || 'text'} onChange={e => { setLogoConfig({...logoConfig, type: e.target.value}); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 cursor-pointer font-bold">
+                                <option value="text">Texto Plano</option>
+                                <option value="image">Imagen URL</option>
+                            </select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-neutral-500 block">Texto del Logo</label>
+                            <input type="text" value={logoConfig?.text || ''} onChange={e => { setLogoConfig({...logoConfig, text: e.target.value}); }} placeholder="FSNFLIX" className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 font-bold" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-neutral-500 block">URL de Imagen</label>
+                            <input type="text" value={logoConfig?.url || ''} onChange={e => { setLogoConfig({...logoConfig, url: e.target.value}); }} placeholder="https://..." className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 font-mono" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Redes y Contacto */}
+                    <div className="bg-neutral-900/40 border border-neutral-900 rounded-[2rem] p-6 md:p-8 space-y-6">
+                      <div>
+                        <span className="text-red-500 font-black text-xs uppercase tracking-widest block">Comunidad & Soporte</span>
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-white">Canales y Contacto del Negocio</h3>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="space-y-1.5"><label className="text-[10px] font-black text-neutral-500 uppercase">WhatsApp (Cobros)</label><input type="text" value={whatsappPhone || ''} onChange={e => { setWhatsappPhone(e.target.value); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 font-bold font-mono" placeholder="Ej: 51986193615" /></div>
+                        <div className="space-y-1.5"><label className="text-[10px] font-black text-neutral-500 uppercase">Grupo VIP</label><input type="text" value={socials?.whatsappGroup || ''} onChange={e => { setSocials({...socials, whatsappGroup: e.target.value}); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 font-mono" /></div>
+                        <div className="space-y-1.5"><label className="text-[10px] font-black text-neutral-500 uppercase">Página Facebook</label><input type="text" value={socials?.facebook || ''} onChange={e => { setSocials({...socials, facebook: e.target.value}); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 font-mono" /></div>
+                        <div className="space-y-1.5"><label className="text-[10px] font-black text-neutral-500 uppercase">TikTok</label><input type="text" value={socials?.tiktok || ''} onChange={e => { setSocials({...socials, tiktok: e.target.value}); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 font-mono" /></div>
+                      </div>
+                    </div>
+
+                    {/* SEO Meta Tags */}
+                    <div className="bg-neutral-900/40 border border-neutral-900 rounded-[2rem] p-6 md:p-8 space-y-6">
+                      <div>
+                        <span className="text-red-500 font-black text-xs uppercase tracking-widest block">Indexación de Google</span>
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-white">Configuración de SEO / Meta Tags</h3>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1.5"><label className="text-[10px] font-black text-neutral-500 uppercase">Título de la Web</label><input type="text" value={metaTags?.title || ''} onChange={e => { setMetaTags({...metaTags, title: e.target.value}); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655" /></div>
+                        <div className="space-y-1.5"><label className="text-[10px] font-black text-neutral-500 uppercase">Título para Compartir</label><input type="text" value={metaTags?.ogTitle || ''} onChange={e => { setMetaTags({...metaTags, ogTitle: e.target.value}); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655" /></div>
+                        <div className="space-y-1.5 md:col-span-2"><label className="text-[10px] font-black text-neutral-500 uppercase">Descripción</label><textarea value={metaTags?.description || ''} onChange={e => { setMetaTags({...metaTags, description: e.target.value}); }} rows="2" className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 resize-none leading-relaxed" /></div>
+                        <div className="space-y-1.5"><label className="text-[10px] font-black text-neutral-500 uppercase">Palabras Clave</label><input type="text" value={metaTags?.keywords || ''} onChange={e => { setMetaTags({...metaTags, keywords: e.target.value}); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655" /></div>
+                        <div className="space-y-1.5"><label className="text-[10px] font-black text-neutral-500 uppercase">URL Miniatura de Compartir (og:image)</label><input type="text" value={metaTags?.ogImage || ''} onChange={e => { setMetaTags({...metaTags, ogImage: e.target.value}); }} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-xs text-white outline-none focus:border-red-655 font-mono" /></div>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
               </main>
 
-              {/* MODAL: SELECTOR MAESTRO DE PLATAFORMA */}
+              {/* MODAL CREADOR DE PLATAFORMAS TIENDA */}
               {showPlatformSelector && (
-                <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fade-in">
-                    <div className="bg-neutral-900 border border-neutral-800 max-w-4xl w-full rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-neutral-800 flex justify-between items-center bg-black/40">
-                            <div>
-                                <h3 className="text-xl font-black uppercase tracking-wider">Añadir Suscripción a la Tienda</h3>
-                                <p className="text-xs text-neutral-400">Selecciona una de las plantillas premium integradas o crea una libre.</p>
-                            </div>
-                            <button onClick={() => setShowPlatformSelector(false)} className="text-neutral-500 hover:text-white font-black text-2xl">&times;</button>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+                    <div className="bg-neutral-900 border border-neutral-800 w-full max-w-2xl rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-center border-b border-neutral-800 pb-4">
+                            <h3 className="text-xl font-black uppercase text-white">Añadir Suscripción</h3>
+                            <button onClick={() => setShowPlatformSelector(false)} className="text-neutral-500 hover:text-white font-black text-xl">✕</button>
                         </div>
                         
-                        <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-neutral-950/50">
-                            {/* Botón de Estilo Libre */}
-                            <button onClick={openCustomServiceModal} className="w-full bg-neutral-900 hover:bg-neutral-850 border-2 border-neutral-800 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-colors group">
-                                <span className="text-3xl mb-1.5 group-hover:scale-110 transition-transform">✨</span>
-                                <h4 className="text-sm font-black text-white uppercase tracking-widest">Crear Plataforma Libre (Logo Personalizado)</h4>
-                                <p className="text-xs text-neutral-500 mt-1">Parámetros automáticos estáticos adaptables para mantener la coherencia estética de tu web principal.</p>
+                        <div className="overflow-y-auto pt-6 space-y-6 flex-1 scrollbar-thin">
+                            <button onClick={openCustomServiceModal} className="w-full bg-neutral-950 hover:bg-neutral-850 border-2 border-neutral-800 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-colors group">
+                                <span className="text-3xl mb-2 group-hover:scale-110 transition-transform">✨</span>
+                                <h4 className="text-sm font-black text-white uppercase tracking-widest">Crear Plataforma Libre</h4>
                             </button>
 
                             <div>
-                                <h4 className="text-xs font-black uppercase tracking-widest text-neutral-500 mb-4 border-b border-neutral-800 pb-2">Catálogo de Integración Rápida</h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                                    {MASTER_SERVICES_DB.map(service => {
-                                        if (shopCatalog.some(s => s.id === service.id)) return null;
+                                <h4 className="text-xs font-black uppercase text-neutral-500 mb-4">Catálogo de Integración Rápida</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {MASTER_SERVICES_DB.map(s => {
+                                        if (shopCatalog.some(cat => cat.id === s.id)) return null;
                                         return (
-                                            <button key={service.id} onClick={() => handleQuickAddService(service)} className="bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-xl p-4 flex flex-col items-center gap-3 transition-all h-24 justify-center" style={{ borderTopWidth: '3px', borderTopColor: service.color }}>
-                                                <div className="h-6 flex items-center justify-center">
-                                                    {service.logoUrl ? <img src={service.logoUrl} className="max-h-full object-contain" alt={service.name} /> : <span className="text-xs font-bold text-white uppercase">{service.name}</span>}
+                                            <button key={s.id} onClick={() => handleQuickAddService(s)} className="bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 rounded-xl p-4 flex flex-col items-center gap-3 transition-all" style={{ borderTopWidth: '3px', borderTopColor: s.color }}>
+                                                <div className="h-8 flex items-center justify-center">
+                                                    {s.logoUrl ? <img src={s.logoUrl} className="max-h-full object-contain" /> : <span className="text-xs font-bold text-white uppercase">{s.name}</span>}
                                                 </div>
-                                                <span className="text-[9px] font-black uppercase text-neutral-500 tracking-wider">Inyectar</span>
                                             </button>
                                         );
                                     })}
@@ -1048,77 +1056,35 @@
                 </div>
               )}
 
-              {/* MODAL CREADOR/EDITOR DE SERVICIOS */}
+              {/* EDITOR MODAL DE PLATAFORMA TIENDA */}
               {editingStoreService && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fade-in">
-                    <div className="bg-neutral-900 border border-neutral-800 max-w-2xl w-full rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-neutral-800 flex justify-between items-center bg-black/50">
-                            <h3 className="text-xl font-black uppercase tracking-wider">{editingStoreService.id.includes('srv-') ? 'Crear Plataforma' : 'Editar Parámetros de Suscripción'}</h3>
-                            <button onClick={() => setEditingStoreService(null)} className="text-neutral-400 hover:text-white font-black text-xl">&times;</button>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+                    <div className="bg-neutral-900 border border-neutral-800 w-full max-w-md rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center border-b border-neutral-800 pb-3 mb-4">
+                            <h3 className="text-xl font-black uppercase text-white">Editar Cuenta</h3>
+                            <button onClick={() => setEditingStoreService(null)} className="text-neutral-500 hover:text-white font-black text-xl">✕</button>
                         </div>
-
-                        <div className="p-6 overflow-y-auto space-y-5 flex-1">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Nombre de la Marca</label>
-                                    <input type="text" value={editingStoreService.name} onChange={e => setEditingStoreService({...editingStoreService, name: e.target.value})} placeholder="Ej: Crunchyroll" className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-sm outline-none focus:border-red-500 text-white font-bold" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">URL del Logo (PNG/SVG Enlace Libre)</label>
-                                    <input type="text" value={editingStoreService.logoUrl} onChange={e => setEditingStoreService({...editingStoreService, logoUrl: e.target.value})} placeholder="https://..." className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-sm outline-none focus:border-red-500 text-blue-400 font-mono" />
-                                </div>
+                        <div className="space-y-3">
+                            <input type="text" value={editingStoreService.name} onChange={e => setEditingStoreService({...editingStoreService, name: e.target.value})} placeholder="Nombre" className="w-full bg-neutral-950 border border-neutral-800 p-3 rounded-xl text-xs text-white outline-none focus:border-red-655" />
+                            <input type="text" value={editingStoreService.plan} onChange={e => setEditingStoreService({...editingStoreService, plan: e.target.value})} placeholder="Plan / Tipo" className="w-full bg-neutral-950 border border-neutral-800 p-3 rounded-xl text-xs text-white outline-none focus:border-red-655" />
+                            <input type="text" value={editingStoreService.price} onChange={e => setEditingStoreService({...editingStoreService, price: e.target.value})} placeholder="Precio (S/)" className="w-full bg-neutral-950 border border-neutral-800 p-3 rounded-xl text-xs text-white outline-none focus:border-red-655" />
+                            <input type="text" value={editingStoreService.logoUrl} onChange={e => setEditingStoreService({...editingStoreService, logoUrl: e.target.value})} placeholder="URL Logo" className="w-full bg-neutral-950 border border-neutral-800 p-3 rounded-xl text-xs text-white outline-none focus:border-red-655" />
+                            
+                            <div className="flex gap-4">
+                              <select value={editingStoreService.status} onChange={e => setEditingStoreService({...editingStoreService, status: e.target.value})} className="flex-1 bg-neutral-950 border border-neutral-800 p-3 rounded-xl text-xs text-white outline-none focus:border-red-655">
+                                  <option value="Disponible">🟢 Activo</option>
+                                  <option value="Agotado">🔴 Agotado</option>
+                              </select>
+                              <select value={editingStoreService.badge} onChange={e => setEditingStoreService({...editingStoreService, badge: e.target.value})} className="flex-1 bg-neutral-950 border border-neutral-800 p-3 rounded-xl text-xs text-white outline-none focus:border-red-655">
+                                  <option value="">(Sin Etiqueta)</option>
+                                  <option value="OFERTA">Oferta</option>
+                                  <option value="RECOMENDADO">Recomendado</option>
+                              </select>
                             </div>
-
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Color Identitario (HEX)</label>
-                                    <div className="flex items-center gap-2 bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2">
-                                        <input type="color" value={editingStoreService.color} onChange={e => setEditingStoreService({...editingStoreService, color: e.target.value})} className="w-8 h-8 rounded bg-transparent cursor-pointer outline-none" />
-                                        <input type="text" value={editingStoreService.color} onChange={e => setEditingStoreService({...editingStoreService, color: e.target.value})} className="w-full bg-transparent text-sm outline-none font-mono uppercase text-white" />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Subtítulo / Tipo de Plan</label>
-                                    <input type="text" value={editingStoreService.plan} onChange={e => setEditingStoreService({...editingStoreService, plan: e.target.value})} placeholder="Ej: Plan Familiar" className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-sm outline-none focus:border-red-500 text-white" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Precio Comercial (S/)</label>
-                                    <input type="text" value={editingStoreService.price} onChange={e => setEditingStoreService({...editingStoreService, price: e.target.value})} placeholder="Ej: 24.90" className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-sm font-bold text-emerald-400 outline-none focus:border-red-500" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 border-y border-neutral-800/60 py-4 my-2">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Disponibilidad (Stock)</label>
-                                    <select value={editingStoreService.status} onChange={e => setEditingStoreService({...editingStoreService, status: e.target.value})} className={`w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-sm outline-none focus:border-red-500 cursor-pointer font-bold ${editingStoreService.status === 'Agotado' ? 'text-red-500' : 'text-emerald-500'}`}>
-                                        <option value="Disponible">🟢 Stock Disponible</option>
-                                        <option value="Agotado">🔴 Sin Stock (Agotado)</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block">Etiqueta Promocional (Badge)</label>
-                                    <select value={editingStoreService.badge} onChange={e => setEditingStoreService({...editingStoreService, badge: e.target.value})} className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-sm outline-none focus:border-red-500 cursor-pointer text-white font-bold">
-                                        <option value="">(Ninguna)</option>
-                                        <option value="OFERTA">Oferta Especial (Neón)</option>
-                                        <option value="RECOMENDADO">Recomendado (Verde)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest block flex justify-between">
-                                    <span>Lista de Beneficios</span>
-                                    <span>Escribe un ítem por renglón</span>
-                                </label>
-                                <textarea value={editingStoreService.features} onChange={e => setEditingStoreService({...editingStoreService, features: e.target.value})} rows="5" placeholder="Calidad Ultra HD&#10;Garantía por 30 días&#10;Dispositivos Simultáneos" className="w-full bg-neutral-950 border border-neutral-800 px-4 py-3 rounded-xl text-sm outline-none focus:border-red-500 resize-none text-white leading-relaxed font-semibold" />
-                            </div>
-
+                            
+                            <textarea value={editingStoreService.features} onChange={e => setEditingStoreService({...editingStoreService, features: e.target.value})} rows="4" placeholder="Beneficios por línea" className="w-full bg-neutral-950 border border-neutral-800 p-3 rounded-xl text-xs text-white outline-none focus:border-red-655 resize-none" />
                         </div>
-
-                        <div className="p-6 border-t border-neutral-850 flex justify-end gap-3 bg-black/50">
-                            <button onClick={() => setEditingStoreService(null)} className="px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-colors">Cerrar</button>
-                            <button onClick={saveStoreService} className="px-8 py-3 bg-red-655 hover:bg-red-600 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-colors shadow-lg">Aplicar Cambios</button>
-                        </div>
+                        <button onClick={saveStoreService} className="w-full py-3 mt-4 bg-emerald-600 text-white font-black rounded-xl text-xs uppercase shadow-lg shadow-emerald-500/20 hover:bg-emerald-500">Guardar</button>
                     </div>
                 </div>
               )}
